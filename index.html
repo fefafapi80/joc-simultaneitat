@@ -201,6 +201,13 @@ tr.allrow td{background:var(--bg);border-bottom:0}tr.agrrow.top td{border-top:2p
 .res2{font-size:11.5px;line-height:1.35;margin-top:3px;color:var(--muted)}.crow .cn .res2 b{display:inline;font-size:11.5px;color:var(--ink)}.res2.bad,.res2.bad b{color:var(--bad)}
 .lim{position:absolute;top:-2px;bottom:-2px;width:2px;background:var(--ink)}
 .ct{text-align:right;line-height:1.1}.ct b{font:600 20px var(--display)}.ct small{display:block;font-size:11px}.ct em{display:block;font-style:normal;font-size:11px;font-weight:700;color:var(--bad)}
+.flex1{flex:1}
+.netchip{display:flex;flex-direction:column;align-items:flex-start;border:1px solid var(--accent);border-radius:6px;padding:3px 10px;background:var(--tint);font-size:12px;line-height:1.25}
+.netchip b{font:600 13px var(--display);text-transform:uppercase;letter-spacing:.06em;color:var(--accent)}.netchip.bad{border-color:var(--bad)}
+.linkb{all:unset;cursor:pointer;color:var(--accent);text-decoration:underline;font-size:12px}
+.rolepick{display:flex;gap:10px;flex-wrap:wrap;margin:14px 0 4px}.rolepick .btn{flex:1}
+.wait{font-weight:600;color:var(--muted);border:1px dashed var(--line);border-radius:6px;padding:10px;text-align:center}
+.side{padding:16px;display:grid;gap:12px}
 @media (max-width:1100px){.coach{grid-template-columns:1fr}}
 @media (max-width:1500px){.steps li{font-size:12.5px;padding:3px 8px 3px 3px;gap:4px}.steps i{width:18px;height:18px;font-size:11px}#head{gap:12px}}
 @media (max-width:1280px){.steps{display:none}}
@@ -1166,12 +1173,14 @@ tr.allrow td{background:var(--bg);border-bottom:0}tr.agrrow.top td{border-top:2p
   function vModal() {
     if (S && S.event) {
       const e = E.EVENTS.find(x => x.id === S.event);
-      return '<div class="ov"><div class="dlg" role="dialog" aria-modal="true"><p class="eyebrow">Decisió per a: ' + ROLE[e.role] + '</p><h2>' + e.title + '</h2><p>' + esc(S.evText) + '</p>' + e.opts.map((o, i) => '<button class="opt" data-a="ans" data-v="' + i + '">' + esc(o.t) + '</button>').join('') + '</div></div>';
+      const mine = !NET.role || NET.role === e.role;
+      return '<div class="ov"><div class="dlg" role="dialog" aria-modal="true"><p class="eyebrow">Decisió per a: ' + ROLE[e.role] + '</p><h2>' + e.title + '</h2><p>' + esc(S.evText) + '</p>' + (mine ? e.opts.map((o, i) => '<button class="opt" data-a="ans" data-v="' + i + '">' + esc(o.t) + '</button>').join('') : '<p class="wait">Ho decideix ' + ROLE[e.role] + '. Espereu la seva resposta.</p>') + '</div></div>';
     }
-    if (S && S.evResult) {
+    if (S && S.evResult && seenRes !== S.evDone.length) {
       const r = S.evResult;
       return '<div class="ov"><div class="dlg" role="dialog" aria-modal="true"><p class="eyebrow ' + (r.good ? 'ok' : 'bad') + '">' + (r.good ? 'Alineat amb la guia' : 'No és el que indica la guia') + '</p><h2>' + r.title + '</h2><blockquote>' + esc(r.guia) + '<cite>GUI.CORA.001 · Simultaneïtat d\'actuacions</cite></blockquote><button class="btn big" data-a="evok">Continua</button></div></div>';
     }
+    if (NET.mode !== 'local' && !NET.role) return lobby();
     if (modal === 'guia') return '<div class="ov"><div class="dlg wide" role="dialog" aria-modal="true"><h2>Guia ràpida</h2><div class="tw"><table class="st"><thead><tr><th></th><th>Control parc</th><th>Punt de comandament</th><th>CCA</th></tr></thead><tbody><tr><td><b>Quan s\'activa</b></td><td>Més de 10 actuacions simultànies en una agrupació, o previsió de superar-les</td><td>Més de 20 actuacions en un àmbit concret, o abans si la gravetat ho justifica</td><td>Diversos punts de comandament en una zona, o SISCOM 3 o 4</td></tr><tr><td><b>On es desplega</b></td><td>En un parc</td><td>Al municipi o barri, preferentment a partir del control parc</td><td>A partir del control parc o punt de comandament de la zona</td></tr><tr><td><b>De qui depèn</b></td><td>SCT</td><td>SCT (SISCOM 1 i 2), CCA (SISCOM 3 i 4)</td><td>SCT (SISCOM 3), SCB (SISCOM 4)</td></tr></tbody></table></div><h3>Prioritats operatives</h3><ol class="prio"><li><b class="d p1">P1</b> Salvament de persones en situació de risc</li><li><b class="d p2">P2</b> Actuacions amb riscos associats que puguin posar en perill les persones</li><li><b class="d p3">P3</b> Infraestructures i serveis essencials</li><li><b class="d p4">P4</b> Altres actuacions sense risc directe o immediat</li></ol><p>El desescalat es fa en ordre invers: CCA, punts de comandament, control parc.</p><button class="btn" data-a="closem">Tanca</button></div></div>';
     if (modal === 'intro') return '<div class="ov"><div class="dlg" role="dialog" aria-modal="true"><p class="eyebrow">17:00 · Comença l\'episodi</p><h2>Com funciona cada torn</h2><ol class="introl"><li><b>TEOC:</b> buideu la bústia 1 classificant cada avís. Després, a la bústia 2, envieu al terreny els paquets que toquin. Les P1, sempre de seguida.</li><li><b>Charlie:</b> mireu el comptador de l\'agrupació al mapa. Quan s\'acosti a 10 actuacions, activeu el control parc. Si una zona s\'apropa a 20 o hi ha persones en risc concentrades, desplegueu-hi un punt de comandament.</li><li>Quan tots dos hàgiu acabat, premeu <b>Avança 15 minuts</b>.</li></ol><p class="hint">El requadre de dalt a la dreta us diu en tot moment què toca fer. Es pot amagar amb el botó «Guiat».</p><button class="btn big" data-a="closem">Comencem</button></div></div>';
     if (modal === 'reset') return '<div class="ov"><div class="dlg" role="dialog" aria-modal="true"><h2>Voleu abandonar aquesta partida?</h2><p>Es perdrà l\'episodi en curs.</p><div class="endbtn"><button class="btn" data-a="new">Sí, nova partida</button><button class="btn ghost" data-a="closem">Continua jugant</button></div></div></div>';
@@ -1179,9 +1188,12 @@ tr.allrow td{background:var(--bg);border-bottom:0}tr.agrrow.top td{border-top:2p
   }
   function head() {
     const ph = [['Preparació', S.round >= 1], ['Control parc', E.anyCP(S)], ['Punt de comandament', E.anyPC(S)], ['CCA', !!S.st.cca], ['Recuperació', S.evDone.includes('cct_recup') || S.phase === 'end']];
-    return '<div class="brand"><b>SIMULTANEÏTAT</b><span>Episodi ' + E.SC.short + ' · ' + E.SC.region + '</span></div><ol class="steps">' + ph.map((p, i) => '<li class="' + (p[1] ? 'on' : '') + '"><i>' + (i + 1) + '</i>' + p[0] + '</li>').join('') + '</ol><div class="clock">' + (S.phase === 'prep' ? '<b>16:30</b><span>Preparació</span>' : S.phase === 'end' ? '<b>21:00</b><span>Episodi tancat</span>' : '<b>' + E.clock(S.round) + '</b><span>Torn ' + S.round + ' de ' + E.ROUNDS + '</span>') + '</div><div class="hbtn"><button class="btn ghost' + (guided() ? ' on' : '') + '" data-a="guided" aria-pressed="' + guided() + '">Guiat: ' + (guided() ? 'sí' : 'no') + '</button><button class="btn ghost" data-a="guia">Guia ràpida</button>' + (S.phase === 'play' ? '<button class="btn ghost" data-a="reset">Reinicia</button>' : '') + '</div>';
+    return '<div class="brand"><b>SIMULTANEÏTAT</b><span>Episodi ' + E.SC.short + ' · ' + E.SC.region + '</span></div>' + (NET.mode === 'local' ? '<ol class="steps">' + ph.map((p, i) => '<li class="' + (p[1] ? 'on' : '') + '"><i>' + (i + 1) + '</i>' + p[0] + '</li>').join('') + '</ol>' : '<span class="flex1"></span>') + '<div class="clock">' + (S.phase === 'prep' ? '<b>16:30</b><span>Preparació</span>' : S.phase === 'end' ? '<b>21:00</b><span>Episodi tancat</span>' : '<b>' + E.clock(S.round) + '</b><span>Torn ' + S.round + ' de ' + E.ROUNDS + '</span>') + '</div>' + netChip() + '<div class="hbtn"><button class="btn ghost' + (guided() ? ' on' : '') + '" data-a="guided" aria-pressed="' + guided() + '">Guiat: ' + (guided() ? 'sí' : 'no') + '</button><button class="btn ghost" data-a="guia">Guia ràpida</button>' + (S.phase === 'play' ? '<button class="btn ghost" data-a="reset">Reinicia</button>' : '') + '</div>';
   }
   function render() {
+    if (lastPhase === 'prep' && S.phase === 'play' && guided()) modal = 'intro';
+    lastPhase = S.phase;
+    if (NET.side) { $('#head').innerHTML = ''; $('#main').innerHTML = sidePanel(); $('#modal').innerHTML = ''; return; }
     const pn = $('#panel'), sc = pn ? pn.scrollTop : 0;
     $('#head').innerHTML = head();
     $('#main').innerHTML = S.phase === 'prep' ? vPrep() : S.phase === 'play' ? vPlay() : vEnd();
@@ -1189,18 +1201,19 @@ tr.allrow td{background:var(--bg);border-bottom:0}tr.agrrow.top td{border-top:2p
     const p2 = $('#panel'); if (p2) p2.scrollTop = sc;
   }
 
-  function act(a, d, el) {
+  function act(a, d, el, val) {
     flash = '';
-    if (a === 'prep') S.prep[d.id] = el.checked;
-    else if (a === 'seed') { const v = parseInt(el.value, 10); if (v > 0) { const o = S; S = E.newGame(v, o.sc); for (const k of ['prep', 'pq', 'pstep', 'prac', 'pracSent', 'keys', 'guided']) S[k] = o[k]; } return; }
-    else if (a === 'sc') { const g = S.guided; S = E.newGame(S.seed, el.value); S.guided = g; }
+    if (NET.mode !== 'local' && !UI_ONLY.has(a) && !NET.host) { netSend(a, d, val); return; }
+    if (a === 'prep') S.prep[d.id] = !!val;
+    else if (a === 'seed') { const v = parseInt(val, 10); if (v > 0) { const o = S; S = E.newGame(v, o.sc); for (const k of ['prep', 'pq', 'pstep', 'prac', 'pracSent', 'keys', 'guided']) S[k] = o[k]; } }
+    else if (a === 'sc') { const g = S.guided; S = E.newGame(S.seed, val); S.guided = g; }
     else if (a === 'preset') { const g = S.guided; S = E.newGame(S.seed, S.sc); S.guided = g; }
     else if (a === 'pq') { ensure(); const m = missions()[S.pstep]; if (S.pq[m.id] === undefined) { const o = m.opts[+d.v]; S.pq[m.id] = +d.v; S.prep[m.id] = !!o.good; S.keys.push({ r: 0, msg: 'Preparació · ' + m.title + (o.good ? ': alineat amb la guia.' : ': «' + o.t + '».'), ok: !!o.good }); } }
     else if (a === 'pnext') { ensure(); S.pstep++; }
     else if (a === 'prac') { ensure(); S.prac[d.i] = d.v; }
     else if (a === 'pracsend') S.pracSent = true;
     else if (a === 'guided') S.guided = !guided();
-    else if (a === 'start') { E.start(S); tab = 'teoc'; if (guided()) modal = 'intro'; }
+    else if (a === 'start') { E.start(S); tab = NET.role || 'teoc'; }
     else if (a === 'tab') tab = d.v;
     else if (a === 'cls') { const r = E.classify(S, +d.id, d.v === 'close' ? 'close' : +d.v); if (r === 'sat') flash = 'La sala no té més capacitat aquest torn. La resta d\'avisos queden en espera.'; }
     else if (a === 'cp') E.setCP(S, d.g, !S.st.cp[d.g]);
@@ -1208,31 +1221,112 @@ tr.allrow td{background:var(--bg);border-bottom:0}tr.agrrow.top td{border-top:2p
     else if (a === 'cca') { if (E.setCCA(S, !S.st.cca) === 'cal') { tab = 'cct'; } }
     else if (a === 'logi') E.setLogi(S, d.g);
     else if (a === 'send' && d.p) E.send(S, d.z === 'all' ? null : +d.z, +d.p);
-    else if (a === 'dest') { dest[el.id] = el.value; return; }
+    else if (a === 'dest') { dest[el.id] = val; return; }
     else if (a === 'rest') showRest = !showRest;
-    else if (a === 'sendg') E.sendCorona(S, +d.c, +$('#sg-' + d.c).value);
-    else if (a === 'send') { const u = S.ubis.find(x => x.park === d.k && x.zone === null && x.dest === null); if (u) E.moveUbi(S, u.id, +$('#s-' + d.k).value); }
-    else if (a === 'move') E.moveUbi(S, d.id, el.value === 'home' ? null : +el.value);
-    else if (a === 'mode') E.setMode(S, d.id, el.value);
-    else if (a === 'adv') { E.advance(S); if (S.event) tab = E.EVENTS.find(x => x.id === S.event).role; }
+    else if (a === 'sendg') E.sendCorona(S, +d.c, +val);
+    else if (a === 'send') { const u = S.ubis.find(x => x.park === d.k && x.zone === null && x.dest === null); if (u) E.moveUbi(S, u.id, +val); }
+    else if (a === 'move') E.moveUbi(S, d.id, val === 'home' ? null : +val);
+    else if (a === 'mode') E.setMode(S, d.id, val);
+    else if (a === 'adv') { E.advance(S); if (S.event && !NET.role) tab = E.EVENTS.find(x => x.id === S.event).role; }
     else if (a === 'close') E.finish(S);
     else if (a === 'ans') E.answer(S, +d.v);
-    else if (a === 'evok') S.evResult = null;
+    else if (a === 'evok') seenRes = S.evDone.length;
     else if (a === 'guia') modal = 'guia';
     else if (a === 'reset') modal = 'reset';
     else if (a === 'closem') modal = null;
-    else if (a === 'new') { const g = S.guided; S = E.newGame(S.seed, S.sc); S.guided = g; modal = null; tab = 'teoc'; }
+    else if (a === 'new') { const g = S.guided; S = E.newGame(S.seed, S.sc); S.guided = g; modal = null; tab = NET.role || 'teoc'; }
     else if (a === 'copy') {
       const sc = S.score, t = 'Simultaneïtat · ' + E.SC.region + ' · ' + E.SC.title + ' (codi ' + S.seed + ')\nPuntuació: ' + sc.total + '/100\nPersones en risc: ' + sc.persones + '\nEstructures i desescalat: ' + sc.estructures + '\nPrioritats i filtratge: ' + sc.prioritats + '\nOperativitat de la sala i del terreny: ' + sc.sala + '\nPreparació, seguretat i logística: ' + sc.seguretat;
       try { navigator.clipboard.writeText(t).then(() => { el.textContent = 'Copiat'; }, () => { el.textContent = 'No s\'ha pogut copiar'; }); } catch (e) { el.textContent = 'No s\'ha pogut copiar'; }
       return;
     }
+    if (NET.host && !UI_ONLY.has(a)) netBroadcast();
     render();
   }
-  document.addEventListener('click', ev => { const el = ev.target.closest('button[data-a]'); if (el) act(el.dataset.a, el.dataset, el); });
-  document.addEventListener('change', ev => { const el = ev.target.closest('select[data-a],input[data-a]'); if (el) act(el.dataset.a, el.dataset, el); });
 
-  function boot(data) { if (data && data.v === 1) { E.use(data.sc); S = data; } else S = E.newGame(2026, 'remn'); render(); }
+  /* ---------- partida compartida (Teams Live Share, o dues finestres amb ?sim=1) ---------- */
+  const UI_ONLY = new Set(['tab', 'rest', 'dest', 'guia', 'reset', 'closem', 'evok', 'copy', 'role', 'takehost', 'stage']);
+  let lastPhase = null, seenRes = -1;
+  const NET = { mode: 'local', host: false, role: null, me: Math.random().toString(36).slice(2, 10), T: null, n: 0, pending: [], done: new Set(), acks: {}, seq: 0, hostId: null, status: '', side: false };
+  function netChip() {
+    if (NET.mode === 'local') return '';
+    return '<div class="netchip' + (NET.status ? ' bad' : '') + '" title="' + esc(NET.status || 'Partida compartida') + '"><b>Partida compartida</b><span>' + (NET.role ? 'Sou ' + RSHORT[NET.role] : 'Sense rol') + (NET.host ? ' · porteu el rellotge' : '') + (NET.pending.length ? ' · enviant…' : '') + '</span>' + (!NET.host && NET.role ? '<button class="linkb" data-a="takehost">Pren el control</button>' : '') + '</div>';
+  }
+  function lobby() {
+    const joined = !!NET.hostId;
+    return '<div class="ov"><div class="dlg" role="dialog" aria-modal="true"><p class="eyebrow">Partida compartida' + (NET.mode === 'sim' ? ' · prova en dues finestres' : ' a la reunió') + '</p><h2>Quin rol porteu?</h2><p>' + (joined ? 'Ja hi ha una partida en marxa. Tria el teu rol per entrar-hi.' : 'Encara no hi ha cap partida. El primer que triï el rol la crea i porta el rellotge.') + ' Cadascú veurà la seva pestanya; les decisions de l\'altre rol us arribaran en directe.</p>' +
+      '<div class="rolepick"><button class="btn big" data-a="role" data-v="teoc">Sóc TEOC</button><button class="btn big" data-a="role" data-v="cct">Sóc Charlie</button></div>' + (NET.status ? '<p class="fbk bad">' + esc(NET.status) + '</p>' : '') + '</div></div>';
+  }
+  function sidePanel() {
+    return '<div class="side"><h2>Joc de simultaneïtat</h2><p>El joc s\'ha de veure a l\'escenari de la reunió, perquè TEOC i Charlie hi juguin alhora.</p><button class="btn big" data-a="stage">Obre el joc a l\'escenari</button><p class="hint">' + esc(NET.status || 'Després, cadascú tria el seu rol a la seva pantalla.') + '</p></div>';
+  }
+  function netWrap() { return { v: 1, host: NET.me, seq: ++NET.seq, acks: NET.acks, S }; }
+  function netBroadcast() { try { NET.T.setState(netWrap()); } catch (e) { NET.status = 'No s\'ha pogut enviar l\'estat de la partida.'; } }
+  function netSend(a, d, val) {
+    const msg = { id: NET.me + ':' + (++NET.n), n: NET.n, from: NET.me, a, d, val, t: Date.now() };
+    NET.pending.push(msg); NET.T.send(msg); render();
+  }
+  function onNetState(w) {
+    if (!w || w.v !== 1 || !w.S) return;
+    if (w.host !== NET.me) {
+      NET.host = false; NET.hostId = w.host; NET.seq = Math.max(NET.seq, w.seq || 0); NET.acks = w.acks || {};
+      E.use(w.S.sc); S = w.S;
+      const ack = (w.acks || {})[NET.me] || 0; NET.pending = NET.pending.filter(m => m.n > ack);
+      render();
+    }
+  }
+  function onNetEvent(m) {
+    if (!NET.host || !m || m.from === NET.me || NET.done.has(m.id)) return;
+    NET.done.add(m.id); NET.acks[m.from] = Math.max(NET.acks[m.from] || 0, m.n);
+    act(m.a, m.d || {}, null, m.val);
+  }
+  setInterval(() => { if (NET.T && !NET.host) { const now = Date.now(); for (const m of NET.pending) if (now - m.t > 2500) { m.t = now; NET.T.send(m); } } }, 1000);
+  function becomeHost() { NET.host = true; NET.hostId = NET.me; netBroadcast(); }
+  const _act = act;
+  act = function (a, d, el, val) {
+    if (a === 'role') { NET.role = d.v; tab = d.v; if (!NET.hostId) becomeHost(); render(); return; }
+    if (a === 'takehost') { becomeHost(); render(); return; }
+    if (a === 'stage') { try { TLS.meeting.shareAppContentToStage(err => { NET.status = err ? 'No s\'ha pogut obrir a l\'escenari: ' + (err.message || err.errorCode || err) : ''; render(); }, location.href.split('?')[0] + '?teams=1'); } catch (e) { NET.status = 'No s\'ha pogut obrir a l\'escenari.'; render(); } return; }
+    return _act(a, d, el, val);
+  };
+  function loadScript(src) { return new Promise((ok, ko) => { const s = document.createElement('script'); s.src = src; s.onload = ok; s.onerror = ko; document.head.appendChild(s); }); }
+  async function netInit() {
+    const q = new URLSearchParams(location.search);
+    if (q.has('sim')) {
+      const ch = new BroadcastChannel('joc-simultaneitat-' + (q.get('sim') || 'prova'));
+      let cur = null; const sl = [], el = [];
+      ch.onmessage = e => { const m = e.data; if (m.k === 'state') { cur = m.w; sl.forEach(f => f(m.w)); } else if (m.k === 'evt') el.forEach(f => f(m.m)); else if (m.k === 'hello' && NET.host) ch.postMessage({ k: 'state', w: cur }); };
+      NET.T = { setState: w => { cur = w; ch.postMessage({ k: 'state', w }); }, send: m => ch.postMessage({ k: 'evt', m }) };
+      sl.push(onNetState); el.push(onNetEvent); NET.mode = 'sim'; ch.postMessage({ k: 'hello' });
+      setTimeout(render, 300); render(); return;
+    }
+    if (!q.has('teams')) return;
+    NET.mode = 'live'; NET.status = 'Connectant amb la reunió…'; render();
+    try {
+      await loadScript('teams.bundle.js');
+      await TLS.app.initialize();
+      const ctx = await TLS.app.getContext();
+      if (ctx && ctx.page && ctx.page.frameContext === 'sidePanel') { NET.side = true; NET.status = ''; render(); return; }
+      const client = new TLS.LiveShareClient(TLS.LiveShareHost.create());
+      const { container } = await client.joinContainer({ initialObjects: { estat: TLS.LiveState, accions: TLS.LiveEvent } });
+      const { estat, accions } = container.initialObjects;
+      estat.on('stateChanged', (w, local) => { if (!local) onNetState(w); });
+      accions.on('received', (m, local) => { if (!local) onNetEvent(m); });
+      await estat.initialize(null); await accions.initialize();
+      NET.T = { setState: w => estat.set(w), send: m => accions.send(m) };
+      NET.status = '';
+      if (estat.state && estat.state.S) onNetState(estat.state);
+      render();
+    } catch (e) {
+      NET.mode = 'local'; NET.status = ''; console.error(e); render();
+    }
+  }
+
+  const valFor = (a, d, el) => a === 'sendg' ? $('#sg-' + d.c).value : a === 'send' && d.k ? $('#s-' + d.k).value : el.type === 'checkbox' ? el.checked : (el.tagName === 'SELECT' || el.tagName === 'INPUT') ? el.value : null;
+  document.addEventListener('click', ev => { const el = ev.target.closest('button[data-a]'); if (el) act(el.dataset.a, Object.assign({}, el.dataset), el, valFor(el.dataset.a, el.dataset, el)); });
+  document.addEventListener('change', ev => { const el = ev.target.closest('select[data-a],input[data-a]'); if (el) act(el.dataset.a, Object.assign({}, el.dataset), el, valFor(el.dataset.a, el.dataset, el)); });
+
+  function boot(data) { if (data && data.v === 1) { E.use(data.sc); S = data; } else S = E.newGame(2026, 'remn'); lastPhase = S.phase; render(); netInit(); }
   const hot = window.claude && window.claude.hot;
   if (hot && hot.snapshot) hot.snapshot(() => S);
   if (hot && hot.ready) hot.ready(boot); else boot((hot && hot.data) || {});
