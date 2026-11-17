@@ -211,6 +211,24 @@ tr.allrow td{background:var(--bg);border-bottom:0}tr.agrrow.top td{border-top:2p
 .pairrow{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:10px 0}.pairrow label{font-weight:600}.pairrow input{font:600 18px var(--display);letter-spacing:.15em;text-transform:uppercase;width:140px;padding:6px 8px;border:1px solid var(--line);border-radius:4px;background:var(--surface);color:var(--ink)}
 .reg{border-top:4px solid var(--accent)}.reg.ok{border-top-color:var(--ok)}.reg.ok h3{color:var(--ok)}
 .regrow{display:flex;flex-wrap:wrap;gap:8px 10px;align-items:center}.regrow label{font-weight:600}.regrow input{font:600 18px var(--display);letter-spacing:.08em;width:150px;padding:6px 8px;border:1px solid var(--line);border-radius:4px;background:var(--surface);color:var(--ink)}
+.start{max-width:980px;margin:0 auto;display:grid;gap:14px}.start .scsel{max-width:480px}
+.modes{display:grid;grid-template-columns:3fr 1.1fr;gap:16px}.mgroup{display:grid;gap:10px;align-content:start}.mgroup:first-child{grid-template-columns:repeat(3,1fr)}.mgroup:first-child .mlab{grid-column:1/-1}
+.mlab{margin:0;font:600 15px var(--display);text-transform:uppercase;letter-spacing:.1em;color:var(--muted)}
+.mode{display:flex;flex-direction:column;gap:6px;text-align:left;background:var(--surface);border:2px solid var(--line);border-radius:10px;padding:18px;cursor:pointer;min-height:150px;color:var(--ink)}
+.mode b{font:700 24px var(--display);text-transform:uppercase;letter-spacing:.03em;color:var(--accent)}.mode span{color:var(--muted);font-size:14.5px}
+.mode:hover:not(:disabled){border-color:var(--accent);background:var(--tint)}.mode:disabled{opacity:.5;cursor:default}
+.modeline{margin:0 0 10px;font-size:14px}
+.coach .auto{background:var(--bg)}.coach .auto b{color:var(--muted)}
+.lobby{max-width:640px}.bigcode{display:flex;align-items:center;gap:12px;flex-wrap:wrap;background:var(--tint);border-radius:8px;padding:10px 14px;margin:6px 0 14px}.bigcode span{font-size:13px;color:var(--muted)}.bigcode b{font:700 40px var(--display);letter-spacing:.18em;color:var(--accent);flex:1}
+.seats{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:10px 0}.seat{display:flex;flex-direction:column;gap:6px;border:2px dashed var(--line);border-radius:10px;padding:14px}.seat b{font:700 18px var(--display);text-transform:uppercase}.seat span{font-size:13px;color:var(--muted);flex:1}.seat em{font-style:normal;font-weight:700;color:var(--ok)}
+.seat.me{border-style:solid;border-color:var(--accent);background:var(--tint)}.seat.full{border-style:solid;border-color:var(--ok)}
+.dots::after{content:'…';display:inline-block;animation:dots 1.4s steps(4,end) infinite;width:1.2em;overflow:hidden;vertical-align:bottom}
+@keyframes dots{0%{width:0}100%{width:1.2em}}
+@media (prefers-reduced-motion:reduce){.dots::after{animation:none}}
+.pairopts{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:10px 0}.pairopts>div{display:flex;flex-direction:column;gap:8px;border:1px solid var(--line);border-radius:8px;padding:14px}.pairopts b{font:700 18px var(--display);text-transform:uppercase}.pairopts span{font-size:13px;color:var(--muted)}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+@media (max-width:800px){.modes,.mgroup:first-child,.seats,.pairopts{grid-template-columns:1fr}}
+.occ{margin:6px 0;font-size:14px}.occ b{font:700 20px var(--display);color:var(--accent)}.occ.bad,.occ.bad b{color:var(--bad)}
 .side{padding:16px;display:grid;gap:12px}
 @media (max-width:1100px){.coach{grid-template-columns:1fr}}
 @media (max-width:1500px){.steps li{font-size:12.5px;padding:3px 8px 3px 3px;gap:4px}.steps i{width:18px;height:18px;font-size:11px}#head{gap:12px}}
@@ -887,7 +905,11 @@ tr.allrow td{background:var(--bg);border-bottom:0}tr.agrrow.top td{border-top:2p
   const ROLE = { teoc: 'TEOC', cct: 'Charlie · Cap de coordinació territorial' };
   const RSHORT = { teoc: 'TEOC', cct: 'Charlie' };
   const guided = () => S.guided !== false;
-  function ensure() { S.pq = S.pq || {}; S.pstep = S.pstep || 0; S.prac = S.prac || {}; }
+  function ensure() { S.pq = S.pq || {}; S.pstep = S.pstep || 0; S.prac = S.prac || {}; S.seats = S.seats || {}; }
+  const META = ['guided', 'solo', 'seats', 'modeChosen'];
+  function carry(o) { for (const k of META) if (o[k] !== undefined) S[k] = o[k]; }
+  const autoRole = () => S.solo === 'teoc' ? 'cct' : S.solo === 'cct' ? 'teoc' : null;
+  function myMissions() { const all = missions(); return S.solo === 'teoc' || S.solo === 'cct' ? all.filter(m => m.role === S.solo) : all; }
 
   /* ---------- preparació en missions ---------- */
   const PRAC = [
@@ -939,7 +961,8 @@ tr.allrow td{background:var(--bg);border-bottom:0}tr.agrrow.top td{border-top:2p
     if (S.round >= 12 && (E.anyCP(S) || E.anyPC(S) || S.st.cca) && E.total(S) <= 10) C.push({ t: "L'episodi afluixa: retireu les estructures en ordre invers (CCA, punts de comandament, control parc)." });
     if (!C.length) C.push({ t: 'Res urgent. Reviseu el mapa i els reforços.', ok: true });
     const li = (x, r) => '<li class="' + (x.u ? 'u' : x.ok ? 'ok' : '') + '"><button class="cgo" data-a="tab" data-v="' + r + '">' + esc(x.t) + '</button></li>';
-    return '<div class="coach"><div><b>TEOC · ara</b><ul>' + T.map(x => li(x, 'teoc')).join('') + '</ul></div><div><b>Charlie · ara</b><ul>' + C.map(x => li(x, 'cct')).join('') + '</ul></div></div>';
+    const col = (r, L) => autoRole() === r ? '<div class="auto"><b>' + RSHORT[r] + ' · automàtic</b><ul><li class="ok"><span class="cgo">Aquest rol el porta el joc. Mireu el diari per veure què fa.</span></li></ul></div>' : '<div><b>' + RSHORT[r] + ' · ara</b><ul>' + L.map(x => li(x, r)).join('') + '</ul></div>';
+    return '<div class="coach">' + col('teoc', T) + col('cct', C) + '</div>';
   }
   const zn = z => E.ZONES[z].name;
   /* Comandament màxim de cada UBI segons la plantilla per torn: tipus A (1 sergent, 2 caporals) i B (1 sergent, 1 caporal) → la primera UBI la porta el sergent; tipus C → caporal. */
@@ -1123,14 +1146,61 @@ tr.allrow td{background:var(--bg);border-bottom:0}tr.agrrow.top td{border-top:2p
     return h + '<p class="mapnote">La ratlla vertical marca el llindar: 10 per al control parc, 20 per al punt de comandament.</p></div>';
   }
 
+  /* ---------- rol automàtic quan es juga sol ---------- */
+  function autoLog(msg) { S.log.unshift({ r: S.round, msg, lvl: 'info' }); }
+  function autoTEOC() {
+    const ib = E.inbox(S).sort((a, b) => (a.kind === 1 ? 0 : 1) - (b.kind === 1 ? 0 : 1) || a.born - b.born);
+    let n = 0;
+    for (const a of ib) { const r = E.classify(S, a.id, typeof a.kind === 'number' ? a.kind : 'close'); if (r === 'sat') break; n++; }
+    E.send(S, null, 1); E.send(S, null, 2);
+    for (const z of E.ZONES) for (const p of [3, 4]) { const f = E.fieldLoad(S, z.id); if (f.open < f.limit) E.send(S, z.id, p); }
+    if (n) autoLog('TEOC (automàtic): ' + n + ' avisos prioritzats i paquets enviats.');
+  }
+  function autoCCT() {
+    const SC = E.SC, nocp = !S.st.cp.S && !S.st.cp.N;
+    if (!SC.multi && nocp && E.total(S) >= 8) { const g = Object.keys(E.AGR).sort((a, b) => E.agrCount(S, b) - E.agrCount(S, a))[0]; E.setCP(S, g, true); }
+    for (const g in E.AGR) if (!S.st.cp[g] && (SC.multi ? E.agrCount(S, g) >= 8 : !nocp && E.agrCount(S, g) >= 5)) E.setCP(S, g, true);
+    for (const z of E.ZONES) if (!S.st.pc[z.id] && E.zoneCount(S, z.id) >= 18) E.setPC(S, z.id, true);
+    if (E.pcCount(S) >= 2 && !S.st.cca) E.setCCA(S, true);
+    for (const z of E.ZONES) {
+      if (S.ubis.some(u => u.zone === z.id || u.dest === z.id)) continue;
+      if (!S.acts.some(a => a.zone === z.id && E.live(a) && (a.kind === 1 || a.cls === 1 || a.cls === 2))) continue;
+      const k = Object.keys(E.PARKS).filter(k => E.PARKS[k].corona && E.PARKS[k].corona <= 2 && S.ubis.filter(u => u.park === k && u.zone === null && u.dest === null).length >= 2).sort((a, b) => E.PARKS[a].delay - E.PARKS[b].delay)[0];
+      if (k) { const u = S.ubis.find(x => x.park === k && x.zone === null && x.dest === null); E.moveUbi(S, u.id, z.id); autoLog('Charlie (automàtic): una UBI de ' + E.PARKS[k].name + ' cap a ' + z.name + '.'); }
+    }
+    if (S.round >= 13) {
+      if (S.st.cca && E.pcCount(S) < 2) E.setCCA(S, false);
+      if (!S.st.cca) for (const z in S.st.pc) if (E.zoneCount(S, +z) <= 10) E.setPC(S, +z, false);
+      for (const g in E.AGR) if (S.st.cp[g] && !S.st.cca && !E.AGR[g].zones.some(z => S.st.pc[z]) && E.agrCount(S, g) <= 5) E.setCP(S, g, false);
+    }
+  }
+  function autoEvent() {
+    while (S.event) {
+      const e = E.EVENTS.find(x => x.id === S.event); if (!e || e.role !== autoRole()) return;
+      const i = e.opts.findIndex(o => o.good); E.answer(S, i); seenRes = S.evDone.length;
+      autoLog(RSHORT[e.role] + ' (automàtic) · ' + e.title + ': ' + e.opts[i].t + '.');
+    }
+  }
+
+  /* ---------- pantalla d'inici ---------- */
+  function vStart() {
+    const SC = E.SC;
+    const card = (v, t, s, extra) => '<button class="mode" data-a="' + (v === 'pair' ? 'pairgo' : 'solo') + '" data-v="' + v + '"' + (extra || '') + '><b>' + t + '</b><span>' + s + '</span></button>';
+    return '<div class="start"><p class="eyebrow">Joc de simultaneïtat · GUI.CORA.001</p><h1>Com voleu jugar?</h1>' +
+      '<label class="scsel" for="sc">Regió i escenari<select id="sc" data-a="sc">' + Object.values(E.SCEN).map(x => '<option value="' + x.id + '"' + (x.id === SC.id ? ' selected' : '') + '>' + x.region + ' · ' + x.title + '</option>').join('') + E.PLANNED.map(x => '<option disabled>' + x[0] + ' · ' + x[1] + ' (en preparació)</option>').join('') + '</select></label>' +
+      '<div class="modes"><div class="mgroup"><p class="mlab">Sol</p>' + card('teoc', 'Faig de TEOC', 'Prioritzo els avisos i envio paquets al terreny. Charlie el porta el joc.') + card('cct', 'Faig de Charlie', 'Decideixo control parc, punts de comandament i reforços. El TEOC el porta el joc.') + card('both', 'Faig els dos rols', 'Per conèixer el joc sencer, tot des d\'una pantalla.') + '</div>' +
+      '<div class="mgroup"><p class="mlab">En parella</p>' + card('pair', 'TEOC + Charlie', canFB ? 'Cadascú al seu ordinador. Un crea la sala i l\'altre hi entra amb el codi.' : 'Només des de la versió del joc a GitHub Pages.', canFB ? '' : ' disabled') + '</div></div></div>';
+  }
+
   /* ---------- pantalles ---------- */
   function vPrep() {
     ensure();
-    const SC = E.SC, loc = Object.values(E.PARKS).filter(p => p.zone !== null), M = missions(), st = S.pstep;
+    const SC = E.SC, loc = Object.values(E.PARKS).filter(p => p.zone !== null), M = myMissions(), st = S.pstep;
     let h = '<div class="prep"><div class="brief"><p class="eyebrow">' + SC.region + ' · Fase 1 · Preparació · 16:30 h</p><h1>' + SC.title + '</h1><p class="lead">' + SC.lead + ' Sou la sala de la ' + SC.regionName + '.</p>' +
       '<div class="how"><b>Com es juga</b><ol><li><span>1</span><div><b>Prepareu el dispositiu.</b> Sis missions curtes: cinc decisions de la guia i una prova de les bústies.</div></li><li><span>2</span><div><b>Gestioneu l\'episodi.</b> Cada torn són 15 minuts, de 17:00 a 21:00. Un panell us dirà què toca fer a cada moment.</div></li><li><span>3</span><div><b>Llegiu l\'informe.</b> Puntuació sobre 100 i els moments clau, bons i dolents.</div></li></ol></div>' +
       '<div class="roles"><div><b>TEOC</b><span>Rep els avisos (bústia 1), els prioritza de P1 a P4 i decideix quins paquets envia al terreny i quan (bústia 2).</span></div><div><b>Charlie · Cap de coordinació territorial</b><span>Mira els comptadors i decideix quan s\'activen el control parc, el punt de comandament i el CCA, i d\'on surten els reforços.</span></div></div>' +
       '<p class="hint">Recursos de sortida: ' + loc.map(p => p.name + ' ' + p.ubi + ' UBI').join(' · ') + '. Podeu demanar reforç de qualsevol parc de Catalunya.</p></div><div class="prepform">';
+    if (NET.mode === 'local') h += '<p class="modeline">Mode: <b>' + ({ teoc: 'sol, fent de TEOC', cct: 'sol, fent de Charlie', both: 'sol, fent els dos rols' }[S.solo] || '') + '</b> <button class="linkb" data-a="chmode">Canvia</button></p>';
     h += '<label class="scsel" for="sc">Regió i escenari<select id="sc" data-a="sc">' + Object.values(E.SCEN).map(x => '<option value="' + x.id + '"' + (x.id === SC.id ? ' selected' : '') + '>' + x.region + ' · ' + x.title + '</option>').join('') + E.PLANNED.map(x => '<option disabled>' + x[0] + ' · ' + x[1] + ' (en preparació)</option>').join('') + '</select></label>';
     h += '<ol class="mstep">' + M.map((m, i) => { const done = i < st, ok = m.practice ? true : S.prep[m.id]; return '<li class="' + (i === st ? 'cur' : done ? (ok ? 'ok' : 'bad') : '') + '" title="' + esc(m.title) + '"><i>' + (done ? (ok ? '✓' : '✕') : i + 1) + '</i><span>' + RSHORT[m.role] + '</span></li>'; }).join('') + '</ol>';
     if (st < M.length) {
@@ -1162,7 +1232,7 @@ tr.allrow td{background:var(--bg);border-bottom:0}tr.agrrow.top td{border-top:2p
   }
   function vPlay() {
     if (!ROLE[tab]) tab = 'teoc';
-    const tabs = [['teoc', 'TEOC', E.inbox(S).length], ['cct', 'Charlie', 0]];
+    const tabs = [['teoc', 'TEOC' + (autoRole() === 'teoc' ? ' · auto' : ''), autoRole() === 'teoc' ? 0 : E.inbox(S).length], ['cct', 'Charlie' + (autoRole() === 'cct' ? ' · auto' : ''), 0]];
     const body = { teoc: pTeoc, cct: pCct }[tab]();
     return '<div class="play"><div class="left"><div class="card mapc">' + map() + '</div>' + cartera() + '<div class="card logc"><h3>Diari de l\'episodi</h3><ul class="log">' + S.log.slice(0, 40).map(l => '<li class="' + l.lvl + '"><time>' + E.clock(Math.min(l.r, E.ROUNDS)) + '</time><span>' + esc(l.msg) + '</span></li>').join('') + '</ul></div></div>' +
       '<div class="right card">' + (guided() ? coach() : '') + '<div class="tabs" role="tablist">' + tabs.map(t => '<button role="tab" aria-selected="' + (tab === t[0]) + '" class="tab' + (tab === t[0] ? ' on' : '') + '" data-a="tab" data-v="' + t[0] + '">' + t[1] + (t[2] ? '<i>' + t[2] + '</i>' : '') + '</button>').join('') + '</div><div class="panel" id="panel">' + body + '</div>' +
@@ -1177,12 +1247,18 @@ tr.allrow td{background:var(--bg);border-bottom:0}tr.agrrow.top td{border-top:2p
     const reg = REG.reg || E.SC.region;
     return '<div class="card reg"><h3>Registra la pràctica</h3><p class="hint top">Cada jugador registra la seva pràctica amb el seu NIP' + (NET.mode !== 'local' ? ', des del seu ordinador' : '') + '.</p><div class="regrow"><label for="nip">NIP</label><input id="nip" inputmode="numeric" maxlength="16" autocomplete="off" value="' + esc(REG.nip) + '"><label for="regio">Regió</label><select id="regio">' + REGS.map(r => '<option' + (r === reg ? ' selected' : '') + '>' + r + '</option>').join('') + '</select><button class="btn" data-a="register"' + (REG.st === 'busy' ? ' disabled' : '') + '>' + (REG.st === 'busy' ? 'Registrant…' : 'Registra la pràctica') + '</button></div>' + (REG.msg ? '<p class="fbk bad">' + esc(REG.msg) + '</p>' : '') + '</div>';
   }
+  function detail() {
+    const k = S.keys.map(x => (x.ok ? '✓ ' : '✕ ') + E.clock(Math.min(x.r, E.ROUNDS)) + ' ' + x.msg);
+    const e = S.m.errs.map(x => '#' + x.id + ' ' + x.did + ' (era ' + x.was + ')');
+    let t = 'MOMENTS CLAU\n' + (k.join('\n') || '—') + '\n\nAVISOS MAL CLASSIFICATS (' + e.length + ')\n' + (e.slice(0, 30).join('\n') || '—') + (e.length > 30 ? '\n…' : '');
+    return t.length > 5900 ? t.slice(0, 5900) + '…' : t;
+  }
   function register() {
     const nip = ($('#nip').value || '').trim().toUpperCase().replace(/\s+/g, ''), reg = $('#regio').value;
     REG.nip = nip; REG.reg = reg;
     if (!/^[A-Z0-9-]{3,16}$/.test(nip)) { REG.msg = 'Escriviu un NIP vàlid (de 3 a 16 lletres o xifres).'; render(); return; }
     const sc = S.score, d = new Date();
-    const rec = { nip, regio: reg, escenari: E.SC.region + ' · ' + E.SC.title, codi: S.seed, data: d.toLocaleString('ca-ES'), mode: NET.mode === 'local' ? 'Individual' : 'En parella', guiada: guided() ? 'Sí' : 'No', rol: NET.role ? RSHORT[NET.role] : 'Tots dos', total: sc.total, persones: sc.persones, estructures: sc.estructures, prioritats: sc.prioritats, sala: sc.sala, seguretat: sc.seguretat, t: { '.sv': 'timestamp' } };
+    const rec = { nip, regio: reg, escenari: E.SC.region + ' · ' + E.SC.title, codi: S.seed, data: d.toLocaleString('ca-ES'), mode: NET.mode === 'local' ? 'Individual' : 'En parella', guiada: guided() ? 'Sí' : 'No', rol: NET.role ? RSHORT[NET.role] : S.solo === 'teoc' ? 'TEOC' : S.solo === 'cct' ? 'Charlie' : 'Tots dos', total: sc.total, persones: sc.persones, estructures: sc.estructures, prioritats: sc.prioritats, sala: sc.sala, seguretat: sc.seguretat, t: { '.sv': 'timestamp' }, detall: detail() };
     REG.st = 'busy'; REG.msg = ''; render();
     fetch(FB.replace('/sales/', '/resultats.json'), { method: 'POST', body: JSON.stringify(rec) }).then(r => {
       if (r.ok) { REG.st = 'ok'; REG.msg = 'NIP ' + nip + ' · ' + reg + ' · ' + sc.total + ' punts. Gràcies.'; }
@@ -1208,8 +1284,8 @@ tr.allrow td{background:var(--bg);border-bottom:0}tr.agrrow.top td{border-top:2p
       const r = S.evResult;
       return '<div class="ov"><div class="dlg" role="dialog" aria-modal="true"><p class="eyebrow ' + (r.good ? 'ok' : 'bad') + '">' + (r.good ? 'Alineat amb la guia' : 'No és el que indica la guia') + '</p><h2>' + r.title + '</h2><blockquote>' + esc(r.guia) + '<cite>GUI.CORA.001 · Simultaneïtat d\'actuacions</cite></blockquote><button class="btn big" data-a="evok">Continua</button></div></div>';
     }
-    if (NET.mode !== 'local' && !NET.role) return lobby();
-    if (modal === 'pair') return '<div class="ov"><div class="dlg" role="dialog" aria-modal="true"><p class="eyebrow">Jugar en parella</p><h2>TEOC i Charlie, cadascú al seu ordinador</h2><p>Un de vosaltres crea una sala i passa l\'enllaç a l\'altre. Si ja teniu un codi, escriviu-lo.</p><div class="pairrow"><button class="btn big" data-a="mkroom">Crea una sala</button></div><div class="pairrow"><label for="roomcode">Codi de sala</label><input id="roomcode" maxlength="7" autocomplete="off" placeholder="ABC123"><button class="btn" data-a="joinroom">Entra</button></div><p class="hint">No cal cap compte. La partida passa per un servei de Google (Firebase) i no s\'hi guarda cap dada personal.</p><button class="btn ghost" data-a="closem">Ara no</button></div></div>';
+    if (NET.mode !== 'local' && !NET.nowait && (!NET.role || !(S.seats && S.seats.teoc && S.seats.cct))) return lobby();
+    if (modal === 'pair') return '<div class="ov"><div class="dlg" role="dialog" aria-modal="true"><p class="eyebrow">En parella · TEOC + Charlie</p><h2>Qui crea la sala?</h2><div class="pairopts"><div><b>Sóc el primer</b><span>Creo la sala i passo el codi al company.</span><button class="btn big" data-a="mkroom">Crea una sala</button></div><div><b>Ja tinc un codi</b><span>El company ja ha creat la sala.</span><div class="pairrow"><label for="roomcode" class="sr">Codi de sala</label><input id="roomcode" maxlength="7" autocomplete="off" placeholder="ABC123"><button class="btn" data-a="joinroom">Entra</button></div></div></div>' + (NET.active === undefined ? '<p class="hint">Comprovant quantes sales hi ha obertes…</p>' : NET.active === null ? '' : '<p class="occ' + (NET.active >= 45 ? ' bad' : '') + '"><b>' + NET.active + '</b> ' + (NET.active === 1 ? 'sala en joc' : 'sales en joc') + ' ara mateix, d\'un màxim d\'unes 50.' + (NET.active >= 45 ? ' És possible que no hi càpigueu: proveu-ho d\'aquí a una estona.' : '') + '</p>') + '<p class="hint">No cal cap compte. La partida passa per un servei de Google (Firebase) i no s\'hi guarda cap dada personal.</p><button class="btn ghost" data-a="closem">Enrere</button></div></div>';
     if (modal === 'guia') return '<div class="ov"><div class="dlg wide" role="dialog" aria-modal="true"><h2>Guia ràpida</h2><div class="tw"><table class="st"><thead><tr><th></th><th>Control parc</th><th>Punt de comandament</th><th>CCA</th></tr></thead><tbody><tr><td><b>Quan s\'activa</b></td><td>Més de 10 actuacions simultànies en una agrupació, o previsió de superar-les</td><td>Més de 20 actuacions en un àmbit concret, o abans si la gravetat ho justifica</td><td>Diversos punts de comandament en una zona, o SISCOM 3 o 4</td></tr><tr><td><b>On es desplega</b></td><td>En un parc</td><td>Al municipi o barri, preferentment a partir del control parc</td><td>A partir del control parc o punt de comandament de la zona</td></tr><tr><td><b>De qui depèn</b></td><td>SCT</td><td>SCT (SISCOM 1 i 2), CCA (SISCOM 3 i 4)</td><td>SCT (SISCOM 3), SCB (SISCOM 4)</td></tr></tbody></table></div><h3>Prioritats operatives</h3><ol class="prio"><li><b class="d p1">P1</b> Salvament de persones en situació de risc</li><li><b class="d p2">P2</b> Actuacions amb riscos associats que puguin posar en perill les persones</li><li><b class="d p3">P3</b> Infraestructures i serveis essencials</li><li><b class="d p4">P4</b> Altres actuacions sense risc directe o immediat</li></ol><p>El desescalat es fa en ordre invers: CCA, punts de comandament, control parc.</p><button class="btn" data-a="closem">Tanca</button></div></div>';
     if (modal === 'intro') return '<div class="ov"><div class="dlg" role="dialog" aria-modal="true"><p class="eyebrow">17:00 · Comença l\'episodi</p><h2>Com funciona cada torn</h2><ol class="introl"><li><b>TEOC:</b> buideu la bústia 1 classificant cada avís. Després, a la bústia 2, envieu al terreny els paquets que toquin. Les P1, sempre de seguida.</li><li><b>Charlie:</b> mireu el comptador de l\'agrupació al mapa. Quan s\'acosti a 10 actuacions, activeu el control parc. Si una zona s\'apropa a 20 o hi ha persones en risc concentrades, desplegueu-hi un punt de comandament.</li><li>Quan tots dos hàgiu acabat, premeu <b>Avança 15 minuts</b>.</li></ol><p class="hint">El requadre de dalt a la dreta us diu en tot moment què toca fer. Es pot amagar amb el botó «Guiat».</p><button class="btn big" data-a="closem">Comencem</button></div></div>';
     if (modal === 'reset') return '<div class="ov"><div class="dlg" role="dialog" aria-modal="true"><h2>Voleu abandonar aquesta partida?</h2><p>Es perdrà l\'episodi en curs.</p><div class="endbtn"><button class="btn" data-a="new">Sí, nova partida</button><button class="btn ghost" data-a="closem">Continua jugant</button></div></div></div>';
@@ -1217,7 +1293,7 @@ tr.allrow td{background:var(--bg);border-bottom:0}tr.agrrow.top td{border-top:2p
   }
   function head() {
     const ph = [['Preparació', S.round >= 1], ['Control parc', E.anyCP(S)], ['Punt de comandament', E.anyPC(S)], ['CCA', !!S.st.cca], ['Recuperació', S.evDone.includes('cct_recup') || S.phase === 'end']];
-    return '<div class="brand"><b>SIMULTANEÏTAT</b><span>Episodi ' + E.SC.short + ' · ' + E.SC.region + '</span></div>' + (NET.mode === 'local' ? '<ol class="steps">' + ph.map((p, i) => '<li class="' + (p[1] ? 'on' : '') + '"><i>' + (i + 1) + '</i>' + p[0] + '</li>').join('') + '</ol>' : '<span class="flex1"></span>') + '<div class="clock">' + (S.phase === 'prep' ? '<b>16:30</b><span>Preparació</span>' : S.phase === 'end' ? '<b>21:00</b><span>Episodi tancat</span>' : '<b>' + E.clock(S.round) + '</b><span>Torn ' + S.round + ' de ' + E.ROUNDS + '</span>') + '</div>' + netChip() + '<div class="hbtn">' + (NET.mode === 'local' && canFB ? '<button class="btn" data-a="pair">Jugar en parella</button>' : '') + '<button class="btn ghost' + (guided() ? ' on' : '') + '" data-a="guided" aria-pressed="' + guided() + '">Guiat: ' + (guided() ? 'sí' : 'no') + '</button><button class="btn ghost" data-a="guia">Guia ràpida</button>' + (S.phase === 'play' ? '<button class="btn ghost" data-a="reset">Reinicia</button>' : '') + '</div>';
+    return '<div class="brand"><b>SIMULTANEÏTAT</b><span>Episodi ' + E.SC.short + ' · ' + E.SC.region + '</span></div>' + (NET.mode === 'local' ? '<ol class="steps">' + ph.map((p, i) => '<li class="' + (p[1] ? 'on' : '') + '"><i>' + (i + 1) + '</i>' + p[0] + '</li>').join('') + '</ol>' : '<span class="flex1"></span>') + '<div class="clock">' + (S.phase === 'prep' ? '<b>16:30</b><span>Preparació</span>' : S.phase === 'end' ? '<b>21:00</b><span>Episodi tancat</span>' : '<b>' + E.clock(S.round) + '</b><span>Torn ' + S.round + ' de ' + E.ROUNDS + '</span>') + '</div>' + netChip() + '<div class="hbtn">' + '<button class="btn ghost' + (guided() ? ' on' : '') + '" data-a="guided" aria-pressed="' + guided() + '">Guiat: ' + (guided() ? 'sí' : 'no') + '</button><button class="btn ghost" data-a="guia">Guia ràpida</button>' + (S.phase === 'play' ? '<button class="btn ghost" data-a="reset">Reinicia</button>' : '') + '</div>';
   }
   function render() {
     if (lastPhase === 'prep' && S.phase === 'play' && guided()) modal = 'intro';
@@ -1225,7 +1301,7 @@ tr.allrow td{background:var(--bg);border-bottom:0}tr.agrrow.top td{border-top:2p
     if (NET.side) { $('#head').innerHTML = ''; $('#main').innerHTML = sidePanel(); $('#modal').innerHTML = ''; return; }
     const pn = $('#panel'), sc = pn ? pn.scrollTop : 0;
     $('#head').innerHTML = head();
-    $('#main').innerHTML = S.phase === 'prep' ? vPrep() : S.phase === 'play' ? vPlay() : vEnd();
+    ensure(); $('#main').innerHTML = S.phase === 'prep' && NET.mode === 'local' && !S.modeChosen ? vStart() : S.phase === 'prep' ? vPrep() : S.phase === 'play' ? vPlay() : vEnd();
     $('#modal').innerHTML = vModal();
     const p2 = $('#panel'); if (p2) p2.scrollTop = sc;
   }
@@ -1234,15 +1310,18 @@ tr.allrow td{background:var(--bg);border-bottom:0}tr.agrrow.top td{border-top:2p
     flash = '';
     if (NET.mode !== 'local' && !UI_ONLY.has(a) && !NET.host) { netSend(a, d, val); return; }
     if (a === 'prep') S.prep[d.id] = !!val;
-    else if (a === 'seed') { const v = parseInt(val, 10); if (v > 0) { const o = S; S = E.newGame(v, o.sc); for (const k of ['prep', 'pq', 'pstep', 'prac', 'pracSent', 'keys', 'guided']) S[k] = o[k]; } }
-    else if (a === 'sc') { const g = S.guided; S = E.newGame(S.seed, val); S.guided = g; }
-    else if (a === 'preset') { const g = S.guided; S = E.newGame(S.seed, S.sc); S.guided = g; }
-    else if (a === 'pq') { ensure(); const m = missions()[S.pstep]; if (S.pq[m.id] === undefined) { const o = m.opts[+d.v]; S.pq[m.id] = +d.v; S.prep[m.id] = !!o.good; S.keys.push({ r: 0, msg: 'Preparació · ' + m.title + (o.good ? ': alineat amb la guia.' : ': «' + o.t + '».'), ok: !!o.good }); } }
+    else if (a === 'seed') { const v = parseInt(val, 10); if (v > 0) { const o = S; S = E.newGame(v, o.sc); for (const k of ['prep', 'pq', 'pstep', 'prac', 'pracSent', 'keys']) S[k] = o[k]; carry(o); } }
+    else if (a === 'sc') { const o = S; S = E.newGame(S.seed, val); carry(o); }
+    else if (a === 'preset') { const o = S; S = E.newGame(S.seed, S.sc); carry(o); }
+    else if (a === 'pq') { ensure(); const m = myMissions()[S.pstep]; if (S.pq[m.id] === undefined) { const o = m.opts[+d.v]; S.pq[m.id] = +d.v; S.prep[m.id] = !!o.good; S.keys.push({ r: 0, msg: 'Preparació · ' + m.title + (o.good ? ': alineat amb la guia.' : ': «' + o.t + '».'), ok: !!o.good }); } }
     else if (a === 'pnext') { ensure(); S.pstep++; }
     else if (a === 'prac') { ensure(); S.prac[d.i] = d.v; }
     else if (a === 'pracsend') S.pracSent = true;
     else if (a === 'guided') S.guided = !guided();
-    else if (a === 'start') { E.start(S); tab = NET.role || 'teoc'; }
+    else if (a === 'solo') { S.solo = d.v; S.modeChosen = true; ensure(); S.pstep = 0; tab = d.v === 'cct' ? 'cct' : 'teoc'; }
+    else if (a === 'chmode') { S.modeChosen = false; S.pstep = 0; S.pq = {}; S.prac = {}; S.pracSent = false; S.keys = []; for (const k in S.prep) S.prep[k] = false; }
+    else if (a === 'seat') { ensure(); if (!S.seats[d.v]) { for (const k in S.seats) if (S.seats[k] === d.who) delete S.seats[k]; S.seats[d.v] = d.who; } S.solo = 'pair'; S.modeChosen = true; }
+    else if (a === 'start') { for (const m of missions()) if (!m.practice && !myMissions().includes(m)) S.prep[m.id] = true; E.start(S); tab = NET.role || (S.solo === 'cct' ? 'cct' : 'teoc'); if (S.solo === 'cct') autoTEOC(); }
     else if (a === 'tab') tab = d.v;
     else if (a === 'cls') { const r = E.classify(S, +d.id, d.v === 'close' ? 'close' : +d.v); if (r === 'sat') flash = 'La sala no té més capacitat aquest torn. La resta d\'avisos queden en espera.'; }
     else if (a === 'cp') E.setCP(S, d.g, !S.st.cp[d.g]);
@@ -1256,14 +1335,14 @@ tr.allrow td{background:var(--bg);border-bottom:0}tr.agrrow.top td{border-top:2p
     else if (a === 'send') { const u = S.ubis.find(x => x.park === d.k && x.zone === null && x.dest === null); if (u) E.moveUbi(S, u.id, +val); }
     else if (a === 'move') E.moveUbi(S, d.id, val === 'home' ? null : +val);
     else if (a === 'mode') E.setMode(S, d.id, val);
-    else if (a === 'adv') { E.advance(S); if (S.event && !NET.role) tab = E.EVENTS.find(x => x.id === S.event).role; }
+    else if (a === 'adv') { if (S.solo === 'teoc') autoCCT(); E.advance(S); autoEvent(); if (S.solo === 'cct' && S.phase === 'play') autoTEOC(); if (S.event && !NET.role && !autoRole()) tab = E.EVENTS.find(x => x.id === S.event).role; }
     else if (a === 'close') E.finish(S);
     else if (a === 'ans') E.answer(S, +d.v);
     else if (a === 'evok') seenRes = S.evDone.length;
     else if (a === 'guia') modal = 'guia';
     else if (a === 'reset') modal = 'reset';
     else if (a === 'closem') modal = null;
-    else if (a === 'new') { REG.st = ''; REG.msg = ''; const g = S.guided; S = E.newGame(S.seed, S.sc); S.guided = g; modal = null; tab = NET.role || 'teoc'; }
+    else if (a === 'new') { REG.st = ''; REG.msg = ''; const o = S; S = E.newGame(S.seed, S.sc); carry(o); modal = null; tab = NET.role || (S.solo === 'cct' ? 'cct' : 'teoc'); }
     else if (a === 'copy') {
       const sc = S.score, t = 'Simultaneïtat · ' + E.SC.region + ' · ' + E.SC.title + ' (codi ' + S.seed + ')\nPuntuació: ' + sc.total + '/100\nPersones en risc: ' + sc.persones + '\nEstructures i desescalat: ' + sc.estructures + '\nPrioritats i filtratge: ' + sc.prioritats + '\nOperativitat de la sala i del terreny: ' + sc.sala + '\nPreparació, seguretat i logística: ' + sc.seguretat;
       try { navigator.clipboard.writeText(t).then(() => { el.textContent = 'Copiat'; }, () => { el.textContent = 'No s\'ha pogut copiar'; }); } catch (e) { el.textContent = 'No s\'ha pogut copiar'; }
@@ -1274,30 +1353,52 @@ tr.allrow td{background:var(--bg);border-bottom:0}tr.agrrow.top td{border-top:2p
   }
 
   /* ---------- partida compartida (Teams Live Share, o dues finestres amb ?sim=1) ---------- */
-  const UI_ONLY = new Set(['register', 'tab', 'rest', 'dest', 'guia', 'reset', 'closem', 'evok', 'copy', 'role', 'takehost', 'stage', 'pair', 'mkroom', 'joinroom', 'copylink']);
+  const UI_ONLY = new Set(['pairgo', 'nowait', 'leave', 'register', 'tab', 'rest', 'dest', 'guia', 'reset', 'closem', 'evok', 'copy', 'role', 'takehost', 'stage', 'pair', 'mkroom', 'joinroom', 'copylink']);
   let lastPhase = null, seenRes = -1;
-  const NET = { mode: 'local', host: false, role: null, me: Math.random().toString(36).slice(2, 10), T: null, n: 0, pending: [], done: new Set(), acks: {}, seq: 0, hostId: null, status: '', side: false, ready: false, room: null };
+  const NET = { mode: 'local', host: false, role: null, me: Math.random().toString(36).slice(2, 10), T: null, n: 0, pending: [], done: new Set(), acks: {}, seq: 0, hostId: null, status: '', side: false, ready: false, room: null, creator: false, nowait: false };
   const FB = 'https://joc-simultaneitat-sct-default-rtdb.europe-west1.firebasedatabase.app/sales/';
   const QS = new URLSearchParams(location.search);
   const canFB = (location.protocol === 'https:' && location.hostname.endsWith('github.io')) || QS.has('fb');
+  const ACT = FB.replace('/sales/', '/actius/');
+  const STALE = 3 * 3600 * 1000, LIVE = 3 * 60 * 1000;
+  function beat() { if (NET.mode === 'fb' && NET.host && !NET.closed && S.phase !== 'end') fetch(ACT + NET.room + '.json', { method: 'PUT', body: JSON.stringify({ '.sv': 'timestamp' }) }).catch(() => {}); }
+  setInterval(beat, 60000);
+  function closeRoom() {
+    if (NET.mode !== 'fb' || !NET.host || NET.closed) return; NET.closed = true;
+    fetch(ACT + NET.room + '.json', { method: 'DELETE' }).catch(() => {});
+    const code = NET.room; setTimeout(() => fetch(FB + code + '.json', { method: 'DELETE' }).catch(() => {}), 90000);
+  }
+  async function roomsInfo(clean) {
+    try {
+      const all = await (await fetch(ACT + '.json')).json() || {}, now = Date.now();
+      NET.active = Object.values(all).filter(t => now - t < LIVE).length;
+      if (clean) for (const k in all) if (now - all[k] > STALE) { fetch(ACT + k + '.json', { method: 'DELETE' }).catch(() => {}); fetch(FB + k + '.json', { method: 'DELETE' }).catch(() => {}); }
+    } catch (e) { NET.active = null; }
+    render();
+  }
   const roomLink = () => location.origin + location.pathname + '?sala=' + NET.room;
   function netChip() {
     if (NET.mode === 'local') return '';
     return '<div class="netchip' + (NET.status ? ' bad' : '') + '" title="' + esc(NET.status || 'Partida compartida') + '"><b>Partida compartida</b><span>' + (NET.room ? 'Sala ' + NET.room + ' · ' : '') + (NET.role ? 'Sou ' + RSHORT[NET.role] : 'Sense rol') + (NET.host ? ' · porteu el rellotge' : '') + (NET.pending.length ? ' · enviant…' : '') + '</span>' + (!NET.host && NET.role ? '<button class="linkb" data-a="takehost">Pren el control</button>' : '') + '</div>';
   }
   function lobby() {
-    const joined = !!NET.hostId;
-    const where = NET.mode === 'sim' ? ' · prova en dues finestres' : NET.mode === 'fb' ? ' · sala ' + NET.room : ' a la reunió';
-    const link = NET.mode === 'fb' ? '<div class="roomlink"><span>Enllaç per a l\'altre jugador:</span><code>' + esc(roomLink()) + '</code><button class="btn ghost" data-a="copylink">Copia l\'enllaç</button></div>' : '';
-    if (!NET.ready) return '<div class="ov"><div class="dlg" role="dialog" aria-modal="true"><p class="eyebrow">Partida compartida' + where + '</p><h2>Connectant…</h2><p>' + esc(NET.status || 'Un moment.') + '</p></div></div>';
-    return '<div class="ov"><div class="dlg" role="dialog" aria-modal="true"><p class="eyebrow">Partida compartida' + where + '</p>' + link + '<h2>Quin rol porteu?</h2><p>' + (joined ? 'Ja hi ha una partida en marxa. Tria el teu rol per entrar-hi.' : 'Encara no hi ha cap partida. El primer que triï el rol la crea i porta el rellotge.') + ' Cadascú veurà la seva pestanya; les decisions de l\'altre rol us arribaran en directe.</p>' +
-      '<div class="rolepick"><button class="btn big" data-a="role" data-v="teoc">Sóc TEOC</button><button class="btn big" data-a="role" data-v="cct">Sóc Charlie</button></div>' + (NET.status ? '<p class="fbk bad">' + esc(NET.status) + '</p>' : '') + '</div></div>';
+    const where = NET.mode === 'sim' ? 'Prova en dues finestres' : NET.mode === 'fb' ? 'Sala d\'espera' : 'Reunió de Teams';
+    if (!NET.ready) return '<div class="ov"><div class="dlg" role="dialog" aria-modal="true"><p class="eyebrow">' + where + '</p><h2>Connectant…</h2><p>' + esc(NET.status || 'Un moment.') + '</p>' + (NET.mode === 'fb' ? '<button class="btn ghost" data-a="leave">Torna a l\'inici</button>' : '') + '</div></div>';
+    const seats = S.seats || {}, mine = NET.role, other = mine === 'teoc' ? 'cct' : mine === 'cct' ? 'teoc' : null;
+    const seat = r => { const who = seats[r], me = who === NET.me; return '<div class="seat' + (me ? ' me' : who ? ' full' : '') + '"><b>' + ROLE[r] + '</b><span>' + (r === 'teoc' ? 'Prioritza els avisos i envia paquets al terreny.' : 'Decideix estructures i reforços.') + '</span>' + (me ? '<em>✓ Tu</em>' : who ? '<em>✓ Company connectat</em>' : '<button class="btn" data-a="role" data-v="' + r + '">Sóc ' + RSHORT[r] + '</button>') + '</div>'; };
+    let msg;
+    if (!mine) msg = 'Tria la teva cadira.';
+    else if (!seats[other]) msg = '<span class="dots">Esperant el company</span>' + (NET.mode === 'fb' ? ' Passa-li el codi o l\'enllaç.' : '');
+    const code = NET.mode === 'fb' ? '<div class="bigcode"><span>Codi de la sala</span><b>' + esc(NET.room.slice(0, 3) + ' ' + NET.room.slice(3)) + '</b><button class="btn ghost" data-a="copylink">Copia l\'enllaç</button></div>' : '';
+    return '<div class="ov"><div class="dlg lobby" role="dialog" aria-modal="true"><p class="eyebrow">' + where + ' · ' + E.SC.region + ' · ' + esc(E.SC.title) + '</p>' + code + '<h2>Seieu a la vostra cadira</h2><div class="seats">' + seat('teoc') + seat('cct') + '</div>' +
+      (msg ? '<p class="wait">' + msg + '</p>' : '') + (NET.status ? '<p class="fbk bad">' + esc(NET.status) + '</p>' : '') +
+      '<div class="endbtn">' + (mine && !seats[other] ? '<button class="btn ghost" data-a="nowait">Comença sense esperar</button>' : '') + (NET.mode === 'fb' ? '<button class="btn ghost" data-a="leave">Surt de la sala</button>' : '') + '</div></div></div>';
   }
   function sidePanel() {
     return '<div class="side"><h2>Joc de simultaneïtat</h2><p>El joc s\'ha de veure a l\'escenari de la reunió, perquè TEOC i Charlie hi juguin alhora.</p><button class="btn big" data-a="stage">Obre el joc a l\'escenari</button><p class="hint">' + esc(NET.status || 'Després, cadascú tria el seu rol a la seva pantalla.') + '</p></div>';
   }
   function netWrap() { return { v: 1, host: NET.me, seq: ++NET.seq, acks: NET.acks, S }; }
-  function netBroadcast() { try { NET.T.setState(netWrap()); } catch (e) { NET.status = 'No s\'ha pogut enviar l\'estat de la partida.'; } }
+  function netBroadcast() { if (S.phase === 'end') closeRoom(); try { NET.T.setState(netWrap()); } catch (e) { NET.status = 'No s\'ha pogut enviar l\'estat de la partida.'; } }
   function netSend(a, d, val) {
     const msg = { id: NET.me + ':' + (++NET.n), n: NET.n, from: NET.me, a, d, val, t: Date.now() };
     NET.pending.push(msg); NET.T.send(msg); render();
@@ -1306,7 +1407,7 @@ tr.allrow td{background:var(--bg);border-bottom:0}tr.agrrow.top td{border-top:2p
     if (!w || w.v !== 1 || !w.S) return;
     if (w.host !== NET.me) {
       NET.host = false; NET.hostId = w.host; NET.seq = Math.max(NET.seq, w.seq || 0); NET.acks = w.acks || {};
-      E.use(w.S.sc); S = w.S;
+      E.use(w.S.sc); S = w.S; ensure(); NET.role = S.seats.teoc === NET.me ? 'teoc' : S.seats.cct === NET.me ? 'cct' : null;
       const ack = (w.acks || {})[NET.me] || 0; NET.pending = NET.pending.filter(m => m.n > ack);
       render();
     }
@@ -1317,14 +1418,23 @@ tr.allrow td{background:var(--bg);border-bottom:0}tr.agrrow.top td{border-top:2p
     act(m.a, m.d || {}, null, m.val);
   }
   setInterval(() => { if (NET.T && !NET.host) { const now = Date.now(); for (const m of NET.pending) if (now - m.t > 2500) { m.t = now; NET.T.send(m); } } }, 1000);
-  function becomeHost() { NET.host = true; NET.hostId = NET.me; netBroadcast(); }
+  function becomeHost() { NET.host = true; NET.hostId = NET.me; netBroadcast(); beat(); }
   const _act = act;
   act = function (a, d, el, val) {
-    if (a === 'role') { NET.role = d.v; tab = d.v; if (!NET.hostId) becomeHost(); render(); return; }
+    if (a === 'role') {
+      ensure(); tab = d.v;
+      if (!NET.hostId) { NET.host = true; NET.hostId = NET.me; }
+      if (NET.host) { _act('seat', { v: d.v, who: NET.me }, null, null); NET.role = S.seats[d.v] === NET.me ? d.v : NET.role; netBroadcast(); render(); }
+      else netSend('seat', { v: d.v, who: NET.me });
+      return;
+    }
+    if (a === 'pairgo') { modal = 'pair'; NET.active = undefined; render(); roomsInfo(true); return; }
+    if (a === 'nowait') { NET.nowait = true; render(); return; }
+    if (a === 'leave') { if (NET.host && S.phase !== 'end') { NET.closed = true; fetch(ACT + NET.room + '.json', { method: 'DELETE' }).catch(() => {}); } location.href = location.pathname; return; }
     if (a === 'takehost') { becomeHost(); render(); return; }
     if (a === 'pair') { modal = 'pair'; render(); return; }
     if (a === 'register') { register(); return; }
-    if (a === 'mkroom') { const A = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; let c = ''; for (let i = 0; i < 6; i++) c += A[Math.floor(Math.random() * A.length)]; modal = null; fbConnect(c); return; }
+    if (a === 'mkroom') { const A = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; let c = ''; for (let i = 0; i < 6; i++) c += A[Math.floor(Math.random() * A.length)]; modal = null; NET.creator = true; S.solo = 'pair'; S.modeChosen = true; fbConnect(c); return; }
     if (a === 'joinroom') { const c = String(val || '').toUpperCase().replace(/[^A-Z0-9]/g, ''); if (c.length < 6) { return; } modal = null; fbConnect(c); return; }
     if (a === 'copylink') { try { navigator.clipboard.writeText(roomLink()).then(() => { el.textContent = 'Copiat'; }, () => { el.textContent = 'Copieu-lo a mà'; }); } catch (e) { el.textContent = 'Copieu-lo a mà'; } return; }
     if (a === 'stage') { try { TLS.meeting.shareAppContentToStage(err => { NET.status = err ? 'No s\'ha pogut obrir a l\'escenari: ' + (err.message || err.errorCode || err) : ''; render(); }, location.href.split('?')[0] + '?teams=1'); } catch (e) { NET.status = 'No s\'ha pogut obrir a l\'escenari.'; render(); } return; }
@@ -1345,7 +1455,12 @@ tr.allrow td{background:var(--bg);border-bottom:0}tr.agrrow.top td{border-top:2p
       if (p === '/') {
         if (d && d.estat) onNetState(parse(d.estat));
         if (d && d.accions && NET.host) for (const k in d.accions) onNetEvent(parse(d.accions[k]));
-        if (!NET.ready) { NET.ready = true; NET.status = ''; render(); }
+        if (!NET.ready) {
+          if (NET.creator) { NET.ready = true; NET.status = ''; becomeHost(); }
+          else if (!d || !d.estat) { NET.status = 'Aquesta sala no existeix o encara no s\'ha creat. Reviseu el codi.'; render(); return; }
+          else { NET.ready = true; NET.status = ''; }
+          render();
+        }
       } else if (p === '/estat') { if (d) onNetState(parse(d)); }
       else if (p === '/accions') { if (d && NET.host) for (const k in d) onNetEvent(parse(d[k])); }
       else if (p.indexOf('/accions/') === 0) { if (d && NET.host) onNetEvent(parse(d)); }
