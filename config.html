@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="ca">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Configura el joc de simultaneïtat</title>
+<style>
+  body{margin:0;padding:24px;font:15px/1.5 "Segoe UI",system-ui,sans-serif;color:#1c1822;background:#fff}
+  h1{font-size:22px;margin:0 0 8px}
+  p{margin:0 0 10px;max-width:60ch}
+  .err{color:#c1272d;font-weight:600}
+  @media (prefers-color-scheme:dark){body{background:#1f1b25;color:#ece8f1}}
+</style>
+</head>
+<body>
+<h1>Joc de simultaneïtat</h1>
+<p>Premeu <b>Desa</b> per afegir el joc a aquesta reunió. Després, des del panell lateral, l'obrireu a l'escenari perquè TEOC i Charlie hi juguin alhora.</p>
+<p id="st"></p>
+<script src="teams.bundle.js"></script>
+<script>
+(async function () {
+  const st = document.getElementById('st');
+  try {
+    await TLS.app.initialize();
+    const base = location.href.split('config.html')[0];
+    TLS.pages.config.registerOnSaveHandler(function (ev) {
+      TLS.pages.config.setConfig({
+        entityId: 'joc-simultaneitat',
+        contentUrl: base + 'index.html?teams=1',
+        websiteUrl: base,
+        suggestedDisplayName: 'Joc de simultaneïtat'
+      }).then(function () { ev.notifySuccess(); }, function (e) { ev.notifyFailure(String(e)); });
+    });
+    TLS.pages.config.setValidityState(true);
+  } catch (e) {
+    st.className = 'err';
+    st.textContent = 'Aquesta pàgina només funciona dins de Teams.';
+  }
+})();
+</script>
+</body>
+</html>

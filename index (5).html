@@ -1,0 +1,1337 @@
+<!DOCTYPE html>
+<html lang="ca">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Joc de simultaneïtat</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Barlow+Condensed:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+/* Disseny: taulell de sala de control. Mapa a l'esquerra, rols a la dreta, rellotge a dalt. */
+:root{
+  --bg:#efedf1;--surface:#fff;--ink:#1c1822;--muted:#655e6f;--line:#d9d3df;
+  --accent:#5a2d82;--accent-ink:#fff;--tint:#ede5f5;--sea:#cddde8;--land:#f7f5f9;
+  --p1:#c1272d;--p2:#c9620a;--p3:#1d6aa8;--p4:#6a6f7b;--ok:#2c7a4b;--warn:#a86a00;--bad:#c1272d;
+  --display:"Barlow Condensed","Arial Narrow",sans-serif;--body:"Barlow","Segoe UI",system-ui,sans-serif;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#141118;--surface:#1f1b25;--ink:#ece8f1;--muted:#a69eb1;--line:#383141;
+  --accent:#b993e6;--accent-ink:#17131c;--tint:#2c2238;--sea:#1b3140;--land:#262130;
+  --p1:#ef6a6e;--p2:#f0a04a;--p3:#6cb2ea;--p4:#a2a7b3;--ok:#62c48a;--warn:#e3b04a;--bad:#ef6a6e;color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#141118;--surface:#1f1b25;--ink:#ece8f1;--muted:#a69eb1;--line:#383141;
+  --accent:#b993e6;--accent-ink:#17131c;--tint:#2c2238;--sea:#1b3140;--land:#262130;
+  --p1:#ef6a6e;--p2:#f0a04a;--p3:#6cb2ea;--p4:#a2a7b3;--ok:#62c48a;--warn:#e3b04a;--bad:#ef6a6e;color-scheme:dark}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0}
+body{background:var(--bg);color:var(--ink);font:15px/1.45 var(--body);display:flex;flex-direction:column}
+h1,h2,h3{font-family:var(--display);margin:0;text-wrap:balance;letter-spacing:.01em}
+h1{font-size:44px;line-height:1;font-weight:700;text-transform:uppercase}
+h2{font-size:26px;font-weight:600}
+h3{font-size:17px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin:18px 0 8px}
+h3:first-child{margin-top:0}
+p{margin:0 0 10px}
+small{display:block;color:var(--muted);font-size:12px;font-weight:400}
+button,select,input{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.eyebrow{font-family:var(--display);text-transform:uppercase;letter-spacing:.12em;font-size:14px;color:var(--accent);margin-bottom:6px}
+.eyebrow.ok{color:var(--ok)}.eyebrow.bad{color:var(--bad)}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:14px}
+.btn{background:var(--accent);color:var(--accent-ink);border:1px solid var(--accent);border-radius:4px;padding:6px 12px;font-weight:600;cursor:pointer;white-space:nowrap}
+.btn.ghost{background:transparent;color:var(--accent)}
+.btn.big{font-family:var(--display);font-size:20px;text-transform:uppercase;letter-spacing:.05em;padding:8px 20px}
+.btn:hover{filter:brightness(1.1)}
+.chip{display:inline-block;font-size:12px;font-weight:600;padding:1px 8px;border-radius:99px;border:1px solid var(--line);color:var(--muted);white-space:nowrap}
+.chip.cp{border-color:var(--p3);color:var(--p3)}.chip.pc,.chip.cca{border-color:var(--accent);color:var(--accent)}.chip.cca{background:var(--tint)}
+.chip.warn,.chip.filt{border-color:var(--warn);color:var(--warn)}.chip.bad{border-color:var(--bad);color:var(--bad)}.chip.ok{border-color:var(--ok);color:var(--ok)}
+.empty,.hint{color:var(--muted);font-size:14px}.hint{margin-top:8px}
+.tw{overflow-x:auto}
+
+#head{display:flex;align-items:center;gap:18px;flex-wrap:wrap;padding:10px 16px;background:var(--surface);border-bottom:3px solid var(--accent)}
+.brand b{font-family:var(--display);font-size:26px;letter-spacing:.08em;display:block;line-height:1}
+.brand span{font-size:12px;color:var(--muted)}
+.steps{display:flex;gap:4px;list-style:none;margin:0;padding:0;flex:1;flex-wrap:wrap}
+.steps li{font-family:var(--display);text-transform:uppercase;letter-spacing:.05em;font-size:14px;padding:4px 10px 4px 4px;border:1px solid var(--line);border-radius:99px;color:var(--muted);display:flex;align-items:center;gap:6px}
+.steps i{font-style:normal;width:20px;height:20px;border-radius:50%;background:var(--line);color:var(--ink);display:grid;place-items:center;font-size:12px}
+.steps li.on{border-color:var(--accent);color:var(--accent);background:var(--tint)}.steps li.on i{background:var(--accent);color:var(--accent-ink)}
+.clock{text-align:right}.clock b{font-family:var(--display);font-size:34px;line-height:1;display:block;font-variant-numeric:tabular-nums}.clock span{font-size:12px;color:var(--muted)}
+.hbtn{display:flex;gap:6px}
+
+#main{flex:1;min-height:0;padding:14px 16px;overflow:auto}
+.play{display:grid;grid-template-columns:minmax(0,5fr) minmax(0,6fr);gap:14px;height:100%;min-height:560px}
+.left{display:flex;flex-direction:column;gap:14px;min-height:0}
+.logc{flex:1;min-height:120px;overflow:auto}
+.right{display:flex;flex-direction:column;min-height:0;padding:0}
+.tabs{display:flex;border-bottom:1px solid var(--line);flex-wrap:wrap}
+.tab{flex:1;background:none;border:0;border-bottom:3px solid transparent;padding:10px 8px;font-family:var(--display);font-size:17px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);cursor:pointer}
+.tab.on{color:var(--accent);border-bottom-color:var(--accent)}
+.tab i{font-style:normal;background:var(--p1);color:#fff;border-radius:99px;font-size:12px;padding:0 6px;margin-left:6px;font-family:var(--body)}
+.panel{flex:1;overflow:auto;padding:14px;min-height:0}
+.foot{display:flex;align-items:center;gap:10px;justify-content:flex-end;padding:10px 14px;border-top:1px solid var(--line);flex-wrap:wrap}
+.foot span{flex:1;color:var(--muted);font-size:13px;min-width:180px}
+
+svg{width:100%;height:auto;display:block}
+.sea{fill:var(--sea)}.seat{fill:var(--muted);font:italic 13px var(--body);opacity:.8}
+.zone{fill:color-mix(in srgb,var(--p2) calc(var(--t)*55%),var(--land));stroke:var(--line);stroke-width:1.5}
+.zone.haspc{stroke:var(--accent);stroke-width:3}.zone.over{stroke:var(--bad);stroke-width:3;stroke-dasharray:6 4}
+.zn{font:600 11px var(--body);fill:var(--ink);text-anchor:middle}
+.zc{font:700 30px var(--display);fill:var(--ink);text-anchor:middle}
+.ubi{fill:var(--ink)}.ubi.disc{fill:var(--p3)}.ubi.rest{fill:none;stroke:var(--ink)}
+.agr{stroke:var(--muted);stroke-width:3;stroke-linecap:round}.agr.on{stroke:var(--p3)}.agr.over{stroke:var(--bad)}
+.agrt{font:600 13px var(--display);letter-spacing:.06em;fill:var(--muted)}.agrt.on{fill:var(--p3)}.agrt.over{fill:var(--bad)}
+.pcb,.ccab{fill:var(--accent)}.pct,.ccat{fill:var(--accent-ink);font:700 11px var(--body);text-anchor:middle}.ccat{font-size:11px;letter-spacing:.04em}
+.park{fill:var(--p1);stroke:var(--surface);stroke-width:1.5}.park.ext{fill:var(--muted)}.park.ext.empty{fill:none;stroke:var(--bad)}
+.parkt{font:500 11px var(--body);fill:var(--ink)}.extl{font:600 12px var(--display);letter-spacing:.08em;fill:var(--muted)}
+.river{stroke:var(--p3);stroke-width:5;opacity:.45;stroke-linecap:round}
+.scsel{display:grid;gap:4px;font:600 13px var(--display);text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:16px}.scsel select{font:500 17px var(--body);text-transform:none;letter-spacing:0;color:var(--ink);padding:8px}
+.corona{border:1px solid var(--line);border-radius:6px;margin-bottom:10px;overflow:hidden}.chead{display:flex;align-items:center;gap:6px 12px;flex-wrap:wrap;padding:8px 10px;background:var(--bg)}.chead b{font:600 17px var(--display);text-transform:uppercase;letter-spacing:.05em}.chead small{flex:1;min-width:160px}
+.mapnote{font-size:12px;color:var(--muted);margin:6px 0 0}
+
+.log,.keys,.inbox,.errs,.p1l{list-style:none;margin:0;padding:0}
+.log li,.keys li{display:flex;gap:10px;padding:4px 0;border-bottom:1px solid var(--line);font-size:13.5px}
+.log time,.keys time{font-variant-numeric:tabular-nums;color:var(--muted);flex:none}
+.log li.bad span{color:var(--bad);font-weight:600}.log li.good span{color:var(--ok)}.log li.warn span{color:var(--warn)}
+.keys li.ok span::before{content:"✓ ";color:var(--ok);font-weight:700}.keys li.bad span::before{content:"✕ ";color:var(--bad);font-weight:700}
+
+.capbox{border:1px solid var(--line);border-radius:6px;padding:10px 12px;margin-bottom:12px;background:var(--bg)}
+.capbox>div:first-child{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.capbox p{font-size:12.5px;color:var(--muted);margin:6px 0 0}
+.capbar{height:8px;background:var(--line);border-radius:4px;margin-top:6px;overflow:hidden}.capbar i{display:block;height:100%;background:var(--accent)}
+.flash{background:var(--bad);color:#fff;padding:6px 10px;border-radius:4px;font-weight:600}
+.inbox li{border:1px solid var(--line);border-left:4px solid var(--muted);border-radius:4px;padding:8px 10px;margin-bottom:8px}
+.ah{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-bottom:4px}.aid{font-family:var(--display);font-size:18px;font-weight:700}
+.inbox p{margin:0 0 8px;font-size:15.5px}
+.ab{display:flex;gap:6px;flex-wrap:wrap}
+.pb{border:1px solid var(--line);background:var(--surface);border-radius:4px;padding:4px 9px;cursor:pointer;font-size:13px}
+.pb b{font-family:var(--display);font-size:15px}
+.pb.p1{border-color:var(--p1);color:var(--p1)}.pb.p2{border-color:var(--p2);color:var(--p2)}.pb.p3{border-color:var(--p3);color:var(--p3)}.pb.p4{border-color:var(--p4);color:var(--p4)}.pb.px{border-style:dashed;color:var(--muted)}
+.pb:hover{background:var(--tint)}
+table{border-collapse:collapse;width:100%;font-size:14px}
+th{text-align:left;font:600 12px var(--display);text-transform:uppercase;letter-spacing:.08em;color:var(--muted);padding:4px 8px;border-bottom:1px solid var(--line)}
+td{padding:6px 8px;border-bottom:1px solid var(--line);vertical-align:middle}
+td.num{font-family:var(--display);font-size:20px;font-weight:600;font-variant-numeric:tabular-nums;white-space:nowrap}td.num.bad{color:var(--bad)}
+td.sub{padding-left:22px}tr.agrrow td{background:var(--bg)}
+.uid{font-family:var(--display);font-weight:600;font-size:16px;white-space:nowrap}
+select,input[type=number]{background:var(--surface);border:1px solid var(--line);border-radius:4px;padding:4px 6px;max-width:100%}
+.send{display:flex;gap:6px;flex-wrap:wrap}.tr{color:var(--muted);font-size:13px}
+.fat{display:inline-block;width:70px;height:8px;background:var(--line);border-radius:4px;overflow:hidden;vertical-align:middle}.fat i{display:block;height:100%}
+.fat.ok i{background:var(--ok)}.fat.warn i{background:var(--warn)}.fat.bad i{background:var(--bad)}
+.blk{margin-bottom:22px}.dep{color:var(--muted);font-size:13.5px}
+.areas{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:8px;margin-bottom:10px}
+.area{border:1px solid var(--line);border-radius:4px;padding:8px 10px}.area b{display:block}.area span{font-size:13px;color:var(--muted)}.area.ispc{border-color:var(--accent);background:var(--tint)}
+.d{font-style:normal;font-weight:700}.d.p1{color:var(--p1)}.d.p2{color:var(--p2)}.d.p3{color:var(--p3)}.d.p4{color:var(--p4)}
+.okline{color:var(--ok);font-weight:600}.p1l li{padding:4px 0;font-size:14px}
+
+.prep{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:28px;max-width:1180px;margin:0 auto;align-items:start}
+.lead{font-size:18px;max-width:60ch}
+.roles{display:grid;gap:8px;margin-top:18px}.roles div{border-left:3px solid var(--accent);padding:2px 0 2px 12px}.roles b{font-family:var(--display);font-size:18px;text-transform:uppercase;letter-spacing:.04em;display:block}.roles span{color:var(--muted);font-size:14px}
+.prepform{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:18px}
+.chk{display:flex;gap:10px;padding:8px 0;border-bottom:1px solid var(--line);cursor:pointer}.chk input{width:18px;height:18px;flex:none;margin-top:2px;accent-color:var(--accent)}
+.res{margin:14px 0;font-size:14px}.res b{display:block}.res span{display:block;color:var(--muted)}
+.startrow{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}.startrow input{width:90px}
+
+.ov{position:fixed;inset:0;background:rgba(15,10,20,.55);display:grid;place-items:center;padding:16px;z-index:10;overflow:auto}
+.dlg{background:var(--surface);border-radius:8px;border-top:5px solid var(--accent);padding:22px;max-width:560px;width:100%}.dlg.wide{max-width:820px}
+.dlg h2{margin-bottom:10px}
+.opt{display:block;width:100%;text-align:left;background:var(--bg);border:1px solid var(--line);border-radius:4px;padding:10px 12px;margin-top:8px;cursor:pointer}.opt:hover{border-color:var(--accent);background:var(--tint)}
+blockquote{margin:10px 0 16px;padding:10px 14px;border-left:4px solid var(--accent);background:var(--tint);font-size:16px}cite{display:block;font-size:12px;color:var(--muted);margin-top:6px;font-style:normal}
+.prio{padding-left:0;list-style:none}.prio li{padding:3px 0}
+
+.end{max-width:980px;margin:0 auto;display:grid;gap:14px}
+.total{background:var(--surface);border:1px solid var(--line);border-top:5px solid var(--accent);border-radius:6px;padding:20px;display:grid;grid-template-columns:auto 1fr;gap:6px 30px;align-items:center}
+.total .eyebrow,.endbtn{grid-column:1/-1}
+.total .big{font:700 110px/0.9 var(--display)}.total .big small{font-size:16px;font-family:var(--body)}
+.bars{display:grid;gap:8px}.bar{display:grid;grid-template-columns:minmax(120px,240px) 1fr 34px;gap:10px;align-items:center;font-size:14px}.bar em{color:var(--muted);font-style:normal;font-size:12px}
+.bar>div{height:10px;background:var(--line);border-radius:5px;overflow:hidden}.bar i{display:block;height:100%}.bar i.ok{background:var(--ok)}.bar i.warn{background:var(--warn)}.bar i.bad{background:var(--bad)}
+.bar b{font-family:var(--display);font-size:20px;text-align:right}
+.endbtn{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
+.errs li{padding:5px 0;border-bottom:1px solid var(--line);font-size:14px}
+
+.two{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(0,1fr);gap:16px;align-items:start}
+.two section{min-width:0}.two h3{margin-top:0;display:flex;align-items:center;gap:8px}
+.cnt{font-style:normal;background:var(--ink);color:var(--surface);border-radius:99px;font:600 13px var(--body);padding:0 8px;letter-spacing:0}
+.hint.top{margin:0 0 8px}
+.sendt td,.sendt th{padding:5px 4px;text-align:center}.sendt td:first-child,.sendt th:first-child{text-align:left}
+.pk{min-width:34px;border:1.5px solid currentColor;background:var(--surface);border-radius:4px;font:700 18px var(--display);padding:2px 6px;cursor:pointer}
+.pk.p1{color:var(--p1)}.pk.p2{color:var(--p2)}.pk.p3{color:var(--p3)}.pk.p4{color:var(--p4)}.pk:hover{background:var(--tint)}
+.pk.all{border-width:3px}
+.pk0{color:var(--line)}
+.fl{white-space:nowrap;font-size:13px;font-variant-numeric:tabular-nums}.fl b{font:600 17px var(--display)}.fl.warn{color:var(--warn)}.fl.bad{color:var(--bad)}
+tr.allrow td{background:var(--bg);border-bottom:0}tr.agrrow.top td{border-top:2px solid var(--ink)}
+@media (max-width:1250px){.two{grid-template-columns:1fr}.two section:last-child{order:-1}}
+.coach{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--line);border-bottom:1px solid var(--line);border-radius:6px 6px 0 0;overflow:hidden}
+.coach>div{background:var(--tint);padding:8px 12px}
+.coach b{font:600 14px var(--display);text-transform:uppercase;letter-spacing:.08em;color:var(--accent)}
+.coach ul{list-style:none;margin:4px 0 0;padding:0}
+.coach li{margin:2px 0}
+.cgo{all:unset;cursor:pointer;display:block;font-size:13.5px;line-height:1.35;padding:2px 0 2px 16px;position:relative}
+.cgo::before{content:"›";position:absolute;left:2px;color:var(--accent);font-weight:700}
+.coach li.u .cgo{color:var(--bad);font-weight:600}.coach li.u .cgo::before{content:"!";color:var(--bad)}
+.coach li.ok .cgo{color:var(--ok)}.coach li.ok .cgo::before{content:"✓";color:var(--ok)}
+.cgo:hover{text-decoration:underline}.cgo:focus-visible{outline:2px solid var(--accent)}
+.btn.ghost.on{background:var(--tint)}
+.how{margin-top:18px;border:1px solid var(--line);border-radius:6px;padding:12px 14px;background:var(--surface)}
+.how>b{font:600 17px var(--display);text-transform:uppercase;letter-spacing:.06em}
+.how ol{list-style:none;margin:8px 0 0;padding:0;display:grid;gap:8px}
+.how li{display:flex;gap:10px;font-size:14.5px}.how li>span{flex:none;width:24px;height:24px;border-radius:50%;background:var(--accent);color:var(--accent-ink);display:grid;place-items:center;font-weight:700;font-size:13px}
+.mstep{list-style:none;display:flex;gap:4px;margin:0 0 14px;padding:0;flex-wrap:wrap}
+.mstep li{flex:1;min-width:44px;display:flex;flex-direction:column;align-items:center;gap:2px;font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
+.mstep i{font-style:normal;width:28px;height:28px;border-radius:50%;display:grid;place-items:center;border:2px solid var(--line);font-weight:700;color:var(--muted)}
+.mstep li.cur i{border-color:var(--accent);background:var(--accent);color:var(--accent-ink)}.mstep li.cur{color:var(--accent);font-weight:600}
+.mstep li.ok i{border-color:var(--ok);color:var(--ok)}.mstep li.bad i{border-color:var(--bad);color:var(--bad)}
+.mcard h2{margin-bottom:8px}.mq{font-size:16.5px}
+.opt.good{border-color:var(--ok);background:color-mix(in srgb,var(--ok) 12%,var(--surface))}.opt.bad{border-color:var(--bad);background:color-mix(in srgb,var(--bad) 12%,var(--surface))}.opt.dim{opacity:.55}.opt:disabled{cursor:default}
+.mnext{display:flex;justify-content:flex-end;margin-top:12px}
+.prac li{border-left-width:1px}.prac p{margin-bottom:6px}
+.fbk{font-size:14px;font-weight:600;margin:4px 0 0}.fbk.ok{color:var(--ok)}.fbk.bad{color:var(--bad)}
+.pracsend{display:flex;gap:10px;align-items:center;flex-wrap:wrap;border:1px dashed var(--accent);border-radius:6px;padding:10px;margin-top:6px}.pracsend span{flex:1;min-width:200px;font-size:14px}
+.pk.all{padding:4px 12px;font-size:16px}
+.introl{padding-left:20px;display:grid;gap:8px;margin:8px 0 12px}
+.cart{padding:10px 14px}
+.carth{display:flex;justify-content:space-between;align-items:baseline;gap:8px;flex-wrap:wrap;margin-bottom:6px}.carth h3{margin:0}
+.lg{font-size:12px;color:var(--muted);display:flex;gap:4px;align-items:center;flex-wrap:wrap}
+.sw{display:inline-block;width:10px;height:10px;border-radius:2px;margin-left:6px}
+.sw.p1,.seg.p1{background:var(--p1)}.sw.p2,.seg.p2{background:var(--p2)}.sw.p3,.seg.p3{background:var(--p3)}.sw.p4,.seg.p4{background:var(--p4)}
+.sw.held,.seg.held{background:repeating-linear-gradient(135deg,var(--line) 0 4px,var(--surface) 4px 8px);border:1px solid var(--muted)}
+.crow{display:grid;grid-template-columns:185px 1fr 70px;gap:10px;align-items:center;padding:5px 0;border-top:1px solid var(--line)}
+.crow.sct .cn b{color:var(--muted)}.crow.pc .cn b{color:var(--accent)}.crow.cp .cn b{color:var(--p3)}
+.cn b{display:block;font-size:13.5px;line-height:1.2}.cn small{font-size:11.5px}
+.cbar{position:relative;display:flex;height:22px;background:var(--bg);border-radius:4px;overflow:hidden}
+.seg{display:grid;place-items:center;color:#fff;font:700 12px var(--body);min-width:0}.seg.held{color:var(--ink)}
+.res2{font-size:11.5px;line-height:1.35;margin-top:3px;color:var(--muted)}.crow .cn .res2 b{display:inline;font-size:11.5px;color:var(--ink)}.res2.bad,.res2.bad b{color:var(--bad)}
+.lim{position:absolute;top:-2px;bottom:-2px;width:2px;background:var(--ink)}
+.ct{text-align:right;line-height:1.1}.ct b{font:600 20px var(--display)}.ct small{display:block;font-size:11px}.ct em{display:block;font-style:normal;font-size:11px;font-weight:700;color:var(--bad)}
+.flex1{flex:1}
+.netchip{display:flex;flex-direction:column;align-items:flex-start;border:1px solid var(--accent);border-radius:6px;padding:3px 10px;background:var(--tint);font-size:12px;line-height:1.25}
+.netchip b{font:600 13px var(--display);text-transform:uppercase;letter-spacing:.06em;color:var(--accent)}.netchip.bad{border-color:var(--bad)}
+.linkb{all:unset;cursor:pointer;color:var(--accent);text-decoration:underline;font-size:12px}
+.rolepick{display:flex;gap:10px;flex-wrap:wrap;margin:14px 0 4px}.rolepick .btn{flex:1}
+.wait{font-weight:600;color:var(--muted);border:1px dashed var(--line);border-radius:6px;padding:10px;text-align:center}
+.side{padding:16px;display:grid;gap:12px}
+@media (max-width:1100px){.coach{grid-template-columns:1fr}}
+@media (max-width:1500px){.steps li{font-size:12.5px;padding:3px 8px 3px 3px;gap:4px}.steps i{width:18px;height:18px;font-size:11px}#head{gap:12px}}
+@media (max-width:1280px){.steps{display:none}}
+@media (max-width:900px){.play,.prep{grid-template-columns:1fr;height:auto}.total{grid-template-columns:1fr}.panel{max-height:none}h1{font-size:34px}.bar{grid-template-columns:1fr 34px}.bar>div{grid-column:1/-1;order:3}}
+@media (prefers-reduced-motion:no-preference){.capbar i,.fat i,.bar i{transition:width .3s}}
+
+</style>
+</head>
+<body>
+<header id="head"></header>
+<main id="main"></main>
+<div id="modal"></div>
+<script>
+/* Motor del joc de simultaneïtat. Sense DOM: es pot provar amb node. */
+(function (G) {
+  const ROUNDS = 16;
+
+  /* Escenaris. Agrupacions i tipus de parc segons el PRO.TRV.000 V4.2026, annex 1. */
+  const SCEN = {
+    remn: {
+      id: 'remn', region: 'REMN', regionName: "Regió d'Emergències Metropolitana Nord", short: 'Maresme', title: 'Pluges intenses al Maresme',
+      lead: 'La predicció dona pluja molt intensa a partir de les 17 h, primer al sud de la comarca i després cap al nord.',
+      agrup: { name: 'Mataró', grup: 403 }, cca: 'CCA Maresme',
+      shift: "La pluja afluixa al sud i s'intensifica cap al nord. Les àrees de treball que has definit ja no reflecteixen on són les actuacions.",
+      curve: [0, 4, 7, 10, 12, 13, 11, 12, 13, 12, 9, 6, 3, 2, 1, 0, 0],
+      w1: [0.15, 0.15, 0.45, 0.10, 0.10, 0.05], w2: [0.08, 0.08, 0.19, 0.15, 0.40, 0.10],
+      zones: [
+        { id: 0, name: 'El Masnou – Premià', agr: 'S', towns: ['El Masnou', 'Premià de Mar', 'Premià de Dalt'] },
+        { id: 1, name: 'Vilassar – Cabrera', agr: 'S', towns: ['Vilassar de Mar', 'Vilassar de Dalt', 'Cabrera de Mar'] },
+        { id: 2, name: 'Mataró', agr: 'S', towns: ['Mataró (Centre)', 'Mataró (Cerdanyola)', 'Mataró (Rocafonda)', "Mataró (Pla d'en Boet)", 'Argentona'] },
+        { id: 3, name: 'Arenys – Canet', agr: 'N', towns: ['Arenys de Mar', 'Arenys de Munt', 'Canet de Mar', 'Sant Pol de Mar'] },
+        { id: 4, name: 'Calella – Pineda', agr: 'N', towns: ['Calella', 'Pineda de Mar', 'Santa Susanna'] },
+        { id: 5, name: 'Malgrat – Tordera', agr: 'N', towns: ['Malgrat de Mar', 'Tordera', 'Palafolls'] }
+      ],
+      agr: { S: { id: 'S', name: 'àmbit sud', park: 'MAT', zones: [0, 1, 2] }, N: { id: 'N', name: 'àmbit nord', park: 'PIN', zones: [3, 4, 5] } },
+      center: [41.58, 2.55], local: { MAT: 2, PIN: 4 },
+      c1: ['BAD', 'SCG', 'GRA', 'MOL', 'SCE', 'SAB', 'TER', 'RUB'], c2: ['LLOR', 'MACA', 'SCFA', 'HOS', 'COR'],
+      streets: ['c. de la Riera', 'c. Major', 'av. del Mar', 'pg. Marítim', "c. de l'Església", 'c. Nou', 'ctra. N-II', 'c. de Sant Joan', "pl. de l'Ajuntament", 'c. del Torrent', 'c. de Barcelona', 'rda. de la Mercè'],
+      g1: {
+        r: 5, zone: 2, title: "Desbordament de la riera d'Argentona", log: "Mataró: la riera d'Argentona desborda. Diversos avisos amb persones en risc.",
+        acts: [[1, "La riera d'Argentona ha desbordat: tres vehicles arrossegats amb ocupants, a la ctra. C-1415c, Mataró"], [1, 'Persones atrapades en un pas soterrat inundat sota la via del tren, a Mataró (Centre)'], [2, "Pont de vianants sobre la riera amb l'estrep descalçat, a Argentona"]],
+        text: n => 'Mataró concentra ' + n + " actuacions i n'acaben d'entrar diverses amb persones en risc per la riera. Encara no s'han superat les 20 actuacions a la zona. Què decideixes?",
+        good: "Desplego ja un punt de comandament a Mataró, amb un cap d'intervenció al lloc; el control parc continua amb la resta de l'àmbit",
+        bad: "Envio totes les UBI de l'àmbit sud a la riera i deixo la resta d'actuacions per a després"
+      },
+      g2: {
+        r: 9, zone: 4, title: 'Segon focus greu al nord', log: 'Santa Susanna: esllavissada en un càmping. Avisos amb persones en risc.',
+        acts: [[1, 'Esllavissada sobre bungalous amb persones a dins, en un càmping de Santa Susanna'], [1, 'Família aïllada per la crescuda en una zona de càmping, a Santa Susanna'], [2, 'Talús inestable sobre la ctra. N-II, a Pineda de Mar']],
+        text: n => 'Una esllavissada afecta un càmping a Santa Susanna. Calella – Pineda té ' + n + ' actuacions i diverses amb persones en risc. Què decideixes?',
+        good: 'Delimito la bombolla i desplego un segon punt de comandament a Calella – Pineda',
+        bad: 'Que ho assumeixi el punt de comandament de Mataró, que ja està rodat'
+      },
+      map: { sea: 'Mar Mediterrània', rev: false, ext: { TER: [40, 60], RUB: [120, 92], SAB: [40, 124], MOL: [150, 150], GRA: [258, 100], SCE: [372, 62], SCG: [40, 215], BAD: [12, 398] } }
+    },
+    rems: {
+      id: 'rems', region: 'REMS', regionName: "Regió d'Emergències Metropolitana Sud", short: 'Garraf', title: 'Pluges intenses al Garraf',
+      lead: 'La predicció dona pluja molt intensa a partir de les 17 h, primer a ponent, entre Cubelles i Vilanova, i després cap a Sitges i les costes del Garraf.',
+      agrup: { name: 'Vilafranca', grup: 503 }, cca: 'CCA Garraf',
+      shift: "La pluja afluixa a ponent i s'intensifica cap a Sitges i les costes. Les àrees de treball que has definit ja no reflecteixen on són les actuacions.",
+      curve: [0, 3, 5, 7, 9, 10, 8, 9, 10, 9, 7, 5, 2, 1, 1, 0, 0],
+      w1: [0.15, 0.45, 0.15, 0.07, 0.13, 0.05], w2: [0.06, 0.18, 0.16, 0.10, 0.40, 0.10],
+      zones: [
+        { id: 0, name: 'Cubelles', agr: 'S', towns: ['Cubelles (Centre)', 'Cubelles (Mas Trader)', 'Cubelles (la Mota de Sant Pere)'] },
+        { id: 1, name: 'Vilanova i la Geltrú', agr: 'S', towns: ['Vilanova (Centre)', 'Vilanova (la Geltrú)', 'Vilanova (barri de Mar)', 'Vilanova (Ribes Roges)', "Vilanova (l'Aragai)"] },
+        { id: 2, name: 'Ribes – les Roquetes', agr: 'S', towns: ['Sant Pere de Ribes', 'les Roquetes', 'Puigmoltó'] },
+        { id: 3, name: 'Canyelles – Olivella', agr: 'N', towns: ['Canyelles', 'Olivella', 'Canyelles (Califòrnia)', 'Olivella (Mas Milà)'] },
+        { id: 4, name: 'Sitges', agr: 'N', towns: ['Sitges (Centre)', 'Sitges (Terramar)', 'Sitges (els Molins)', 'Sitges (Aiguadolç)'] },
+        { id: 5, name: 'Garraf – les Botigues', agr: 'N', towns: ['Garraf', 'les Botigues de Sitges', 'Vallcarca'] }
+      ],
+      agr: { S: { id: 'S', name: 'àmbit ponent', park: 'VIL', zones: [0, 1, 2] }, N: { id: 'N', name: 'àmbit llevant', park: 'VIF', zones: [3, 4, 5] } },
+      center: [41.24, 1.78], local: { VIL: 1 },
+      c1: ['VIF', 'GAV', 'SBOI', 'PLL', 'COR', 'HOS', 'SFE', 'MAR', 'IGU'], c2: ['VEND', 'VALS', 'TARR', 'RUB'],
+      streets: ['c. Major', 'av. del Mar', 'pg. Marítim', "c. de l'Església", 'c. Nou', 'ctra. C-31', 'c. de Sant Joan', "pl. de l'Ajuntament", 'c. del Torrent', 'rbla. Principal', 'c. de Barcelona', 'av. del Garraf'],
+      g1: {
+        r: 5, zone: 1, title: 'El torrent de la Pastera desborda a Vilanova', log: 'Vilanova: el torrent de la Pastera desborda i inunda els passos soterrats. Diversos avisos amb persones en risc.',
+        acts: [[1, 'Dos vehicles atrapats amb ocupants en un pas soterrat inundat sota la via del tren, a Vilanova (Centre)'], [1, 'Planta baixa inundada amb una parella gran que no pot sortir, a tocar del torrent de la Pastera, Vilanova'], [2, 'Mur de la canalització del torrent esquerdat sobre un carrer amb trànsit, a Vilanova (barri de Mar)']],
+        text: n => 'Vilanova concentra ' + n + " actuacions i n'acaben d'entrar diverses amb persones en risc pel desbordament del torrent. Encara no s'han superat les 20 actuacions a la zona. Què decideixes?",
+        good: "Desplego ja un punt de comandament a Vilanova, amb un cap d'intervenció al lloc; el control parc continua amb la resta de l'àmbit",
+        bad: "Envio totes les UBI de l'àmbit ponent al torrent i deixo la resta d'actuacions per a després"
+      },
+      g2: {
+        r: 9, zone: 4, title: 'La riera de Ribes desborda a Sitges', log: 'Sitges: la riera de Ribes desborda a la desembocadura. Avisos amb persones en risc.',
+        acts: [[1, 'Vehicles arrossegats per la riera de Ribes amb persones a dins, a Sitges (Terramar)'], [1, 'Bungalous envoltats per l\'aigua amb gent a dins, en un càmping a tocar de la riera, Sitges'], [2, 'Esllavissada de roques sobre la ctra. C-31, a les costes del Garraf']],
+        text: n => 'La riera de Ribes desborda a Sitges. La zona té ' + n + ' actuacions i diverses amb persones en risc. Què decideixes?',
+        good: 'Delimito la bombolla i desplego un segon punt de comandament a Sitges',
+        bad: 'Que ho assumeixi el punt de comandament de Vilanova, que ja està rodat'
+      },
+      map: { sea: 'Mar Mediterrània', rev: false, ext: { VIF: [40, 60], IGU: [150, 60], MAR: [258, 60], SFE: [40, 110], COR: [150, 110], HOS: [258, 110], SBOI: [40, 160], PLL: [150, 160], GAV: [40, 215] } }
+    },
+    rete: {
+      id: 'rete', region: 'RETE', regionName: "Regió d'Emergències de les Terres de l'Ebre", short: 'Ebre', title: "Crescuda de l'Ebre, de Flix al delta",
+      lead: "La predicció dona pluja torrencial a partir de les 17 h i una crescuda de l'Ebre. Primer afectarà la Ribera d'Ebre, entre Flix i Móra, i després baixarà cap a Tortosa, Amposta i el delta.",
+      multi: true, agrup: { name: "Móra d'Ebre i Amposta", grup: '702 i 701' }, cca: 'CCA Ebre',
+      shift: "La pluja afluixa a la Ribera d'Ebre, però la crescuda i els barrancs ja afecten Tortosa, Amposta i el delta. Les àrees de treball que has definit ja no reflecteixen on són les actuacions.",
+      curve: [0, 3, 4, 6, 7, 8, 7, 7, 8, 7, 5, 4, 2, 1, 1, 0, 0],
+      w1: [0.25, 0.40, 0.15, 0.12, 0.05, 0.03], w2: [0.05, 0.12, 0.13, 0.40, 0.18, 0.12],
+      zones: [
+        { id: 0, name: 'Flix – Ascó', agr: 'S', towns: ['Flix', 'Ascó', 'Vinebre', 'Riba-roja d\'Ebre'] },
+        { id: 1, name: "Móra d'Ebre – Móra la Nova", agr: 'S', towns: ["Móra d'Ebre", 'Móra la Nova', 'Garcia', 'Benissanet', 'Miravet'] },
+        { id: 2, name: 'Benifallet – Xerta', agr: 'N', towns: ['Benifallet', 'Xerta', 'Tivenys', 'Aldover'] },
+        { id: 3, name: 'Tortosa', agr: 'N', towns: ['Tortosa (Centre)', 'Tortosa (Ferreries)', 'Tortosa (Remolins)', 'Roquetes', 'Tortosa (Jesús)'] },
+        { id: 4, name: 'Amposta', agr: 'N', towns: ['Amposta (Centre)', 'Amposta (el Grau)', "l'Aldea", 'Amposta (polígon de l\'Oriola)'] },
+        { id: 5, name: 'Deltebre – Sant Jaume', agr: 'N', towns: ['Deltebre', "Sant Jaume d'Enveja", 'Riumar', 'els Muntells'] }
+      ],
+      agr: { S: { id: 'S', name: "agrupació Móra d'Ebre", park: 'MORA', zones: [0, 1] }, N: { id: 'N', name: 'agrupació Amposta', park: 'TORT', zones: [2, 3, 4, 5] } },
+      center: [40.95, 0.58], local: { ASCO: 0, MORA: 1, TORT: 3, AMPO: 4 },
+      c1: ['GAND', 'AMET', 'ULLD'], c2: ['FALS', 'HOSP', 'CAMB', 'REUS'],
+      streets: ['c. Major', "av. de l'Ebre", "pg. de l'Ebre", "c. de l'Església", 'c. Nou', 'ctra. C-12', 'c. de Sant Joan', "pl. de l'Ajuntament", 'c. del Barranc', 'camí de Sirga', 'c. de la Barca', 'av. de Catalunya'],
+      g1: {
+        r: 5, zone: 1, title: "L'Ebre entra a la part baixa de Móra d'Ebre", log: "Móra d'Ebre: l'Ebre i els barrancs inunden la part baixa del nucli. Diversos avisos amb persones en risc.",
+        acts: [[1, "Dos vehicles atrapats amb ocupants en un pas inundat a tocar del riu, a Móra d'Ebre"], [1, "Cases de la façana fluvial amb aigua a la planta baixa i gent gran a dins, a Móra d'Ebre"], [2, "Talús del passeig de l'Ebre descalçat per la crescuda, a Móra d'Ebre"]],
+        text: n => "Móra d'Ebre – Móra la Nova concentra " + n + " actuacions i n'acaben d'entrar diverses amb persones en risc per la crescuda. Encara no s'han superat les 20 actuacions a la zona. Què decideixes?",
+        good: "Desplego ja un punt de comandament a Móra d'Ebre, amb un cap d'intervenció al lloc; el control parc continua amb la resta de l'àmbit",
+        bad: "Envio totes les UBI de l'agrupació Móra d'Ebre al riu i deixo la resta d'actuacions per a després"
+      },
+      g2: {
+        r: 9, zone: 3, title: 'Els barrancs desborden a Tortosa', log: 'Tortosa: el barranc del Rastre desborda i la crescuda arriba a la ciutat. Avisos amb persones en risc.',
+        acts: [[1, 'Vehicles arrossegats pel barranc del Rastre amb persones a dins, a Tortosa'], [1, 'Plantes baixes inundades amb gent gran que no pot sortir, a Tortosa (Ferreries)'], [2, "Mur de contenció del riu amb filtracions i esquerdes, a Tortosa (Centre)"]],
+        text: n => 'El barranc del Rastre desborda i la crescuda arriba a Tortosa. La zona té ' + n + ' actuacions i diverses amb persones en risc. Què decideixes?',
+        good: 'Delimito la bombolla i desplego un segon punt de comandament a Tortosa',
+        bad: "Que ho assumeixi el punt de comandament de Móra d'Ebre, que ja està rodat"
+      },
+      map: { river: "riu Ebre", rev: true, ext: { GAND: [60, 70], AMET: [40, 130], ULLD: [40, 190] } }
+    },
+    rell: {
+      id: 'rell', region: 'REL', regionName: "Regió d'Emergències de Lleida", short: 'Ondara', title: "Crescuda del riu Ondara",
+      lead: "La predicció dona pluja molt intensa a la capçalera de l'Ondara, a la zona de Talavera, a partir de les 17 h. Riu avall gairebé no hi plourà, però la crescuda pot baixar de cop: primer a Cervera i després pel Talladell, Tàrrega i Vilagrassa, fins a Anglesola, on el riu es perd als regadius del canal d'Urgell.",
+      agrup: { name: 'Balaguer', grup: 302 }, cca: 'CCA Ondara',
+      shift: "A la capçalera ja no plou, però l'onada de crescuda baixa cap al Talladell, Tàrrega i Anglesola, on no ha caigut ni una gota. Les àrees de treball que has definit ja no reflecteixen on són les actuacions.",
+      curve: [0, 2, 3, 4, 5, 5, 5, 5, 6, 5, 3, 2, 1, 0, 0, 0, 0],
+      w1: [0.15, 0.45, 0.10, 0.20, 0.06, 0.04], w2: [0.04, 0.12, 0.12, 0.45, 0.15, 0.12],
+      zones: [
+        { id: 0, name: "Talavera – Ribera d'Ondara", agr: 'S', towns: ['Talavera', 'Civit', 'Sant Antolí i Vilanova', 'Sant Pere dels Arquells'] },
+        { id: 1, name: 'Cervera', agr: 'S', towns: ['Cervera (Centre)', 'Cervera (barri de Sant Francesc)', 'Vergós', 'Cervera (polígon industrial)'] },
+        { id: 2, name: 'El Talladell', agr: 'N', towns: ['el Talladell', 'el Talladell (Via Verda)', 'el Talladell (camí del riu)'] },
+        { id: 3, name: 'Tàrrega', agr: 'N', towns: ['Tàrrega (Centre)', 'Tàrrega (raval de Sant Agustí)', 'Tàrrega (Parc del Reguer)', 'Tàrrega (polígon Riambau)'] },
+        { id: 4, name: 'Vilagrassa', agr: 'N', towns: ['Vilagrassa (Centre)', 'Vilagrassa (camí del riu)', 'Vilagrassa (polígon)'] },
+        { id: 5, name: 'Anglesola', agr: 'N', towns: ['Anglesola (Centre)', "Anglesola (l'horta)", "Anglesola (canal d'Urgell)"] }
+      ],
+      agr: { S: { id: 'S', name: 'àmbit Segarra', park: 'CERV', zones: [0, 1] }, N: { id: 'N', name: 'àmbit Urgell', park: 'TAR', zones: [2, 3, 4, 5] } },
+      txt: {
+        2: ["Pont sobre l'Ondara amb brossa acumulada i l'aigua a tocar del tauler", 'Mur de la canalització del riu amb esquerdes noves', "Cable elèctric caigut dins l'aigua en un carrer inundat", 'Esvoranc a la calçada vora el riu que es va fent gran', 'Dipòsit de gasoil arrossegat i amb fuita en un magatzem inundat', 'Passera de vianants sobre el riu moguda per la crescuda'],
+        4: ["Garatge comunitari amb un pam d'aigua, sense ningú a dins", "Soterrani d'un local comercial inundat", "Aigua al traster d'un bloc de pisos", "Hort i caseta d'eines inundats vora el riu, sense ningú", "Fang i brossa acumulats al carrer després del pas de l'aigua", 'Vehicle aparcat i buit amb aigua fins a les rodes', "Camí tallat per l'aigua, sense ningú afectat", 'Magatzem agrícola amb aigua a la planta baixa'],
+        obs: ["L'alertant torna a trucar: l'aigua ja ha baixat i no cal que hi anem", 'La Policia Local informa que ja ha tallat el camí inundat', "Truquen per anul·lar l'avís: ho ha resolt la brigada municipal"]
+      },
+      center: [41.66, 1.20], local: { CERV: 1, TAR: 3 },
+      c1: ['MOLL', 'BALA', 'LLEI'], c2: ['CAF', 'IGU', 'MONT', 'SOLS'],
+      streets: ['c. Major', "av. de l'Ondara", 'c. del Riu', "c. de l'Església", 'c. Nou', 'ctra. N-II', 'c. de Sant Joan', "pl. de l'Ajuntament", 'c. del Pont', 'camí del Molí', 'c. de la Font', 'av. de Catalunya'],
+      g1: {
+        r: 5, zone: 1, title: "L'Ondara desborda a Cervera", log: "Cervera: l'Ondara desborda a Vergós i a la part baixa de la ciutat. Diversos avisos amb persones en risc.",
+        acts: [[1, "L'Ondara ha desbordat: dos vehicles arrossegats amb ocupants en un gual, a Vergós"], [1, 'Casa a tocar del riu amb aigua fins a la finestra i una família al pis de dalt, a Cervera'], [2, "Pont del camí vell amb l'estrep descalçat per la crescuda, a Cervera"]],
+        text: n => 'Cervera concentra ' + n + " actuacions i n'acaben d'entrar diverses amb persones en risc pel desbordament. Encara no s'han superat les 20 actuacions a la zona. Què decideixes?",
+        good: "Desplego ja un punt de comandament a Cervera, amb un cap d'intervenció al lloc; el control parc continua amb la resta de l'àmbit",
+        bad: "Envio totes les UBI de l'àmbit Segarra al riu i deixo la resta d'actuacions per a després"
+      },
+      g2: {
+        r: 9, zone: 3, title: 'La riuada arriba a Tàrrega', log: "Tàrrega: la riuada entra al raval de Sant Agustí. Avisos amb persones en risc.",
+        acts: [[1, 'Plantes baixes inundades amb gent gran que no pot sortir, al raval de Sant Agustí, Tàrrega'], [1, 'Vehicle atrapat sota el pont del riu amb una persona a dins, a Tàrrega'], [2, "Mur de canalització de l'Ondara esquerdat i amb filtracions, a Tàrrega (Centre)"]],
+        text: n => 'La crescuda arriba a Tàrrega, desborda al Parc del Reguer i entra al raval de Sant Agustí. La zona té ' + n + ' actuacions i diverses amb persones en risc. Què decideixes?',
+        good: 'Delimito la bombolla i desplego un segon punt de comandament a Tàrrega',
+        bad: 'Que ho assumeixi el punt de comandament de Cervera, que ja està rodat'
+      },
+      map: { river: 'riu Ondara', rev: true, ext: { BALA: [60, 70], LLEI: [40, 130], MOLL: [40, 190] } }
+    }
+  };
+  /* Catàleg de parcs professionals (PRO.TRV.000 V4.2026, annex 1). Tipus pel mínim de guàrdia: 8-9 → A (3 UBI), 5-6 → B (2), 3-4 → C (1).
+     Coordenades aproximades del municipi, només per estimar el temps d'arribada. [nom, regió, agrupació, tipus, lat, lon] */
+  const CAT = {
+    CAF: ['Calaf', 'REC', 'Manresa', 'C', 41.73, 1.51], CAR: ['Cardona', 'REC', 'Manresa', 'C', 41.91, 1.68], MAN: ['Manresa', 'REC', 'Manresa', 'A', 41.73, 1.83], MOI: ['Moià', 'REC', 'Manresa', 'C', 41.81, 2.10],
+    BER: ['Berga', 'REC', 'Berga', 'B', 42.10, 1.85], GUA: ['Guardiola de Berguedà', 'REC', 'Berga', 'C', 42.23, 1.88], PUIG: ['Puigcerdà', 'REC', 'Berga', 'B', 42.43, 1.93], SOLS: ['Solsona', 'REC', 'Berga', 'C', 41.99, 1.52],
+    PRA: ['Prats de Lluçanès', 'REC', 'Vic', 'C', 42.01, 2.03], TOR: ['Torelló', 'REC', 'Vic', 'C', 42.05, 2.26], VIC: ['Vic', 'REC', 'Vic', 'B', 41.93, 2.25],
+    FIGU: ['Figueres', 'REG', 'Figueres', 'B', 42.27, 2.96], LLAN: ['Llançà', 'REG', 'Figueres', 'C', 42.36, 3.15], ROSE: ['Roses', 'REG', 'Figueres', 'C', 42.26, 3.18], TORR: ['Torroella de Montgrí', 'REG', 'Figueres', 'C', 42.04, 3.13],
+    GIRO: ['Girona', 'REG', 'Girona', 'A', 41.98, 2.82], BANY: ['Banyoles', 'REG', 'Girona', 'C', 42.12, 2.77], OLOT: ['Olot', 'REG', 'Girona', 'B', 42.18, 2.49], RIPO: ['Ripoll', 'REG', 'Girona', 'C', 42.20, 2.19],
+    PALA: ['Palafrugell', 'REG', 'Palafrugell', 'B', 41.92, 3.16], CASS: ['Cassà de la Selva', 'REG', 'Palafrugell', 'C', 41.89, 2.87], PERA: ['La Pera', 'REG', 'Palafrugell', 'B', 42.02, 2.97], VALL: ["Vall d'Aro", 'REG', 'Palafrugell', 'C', 41.82, 3.00],
+    LLOR: ['Lloret de Mar', 'REG', 'Lloret', 'B', 41.70, 2.85], MACA: ['Maçanet de la Selva', 'REG', 'Lloret', 'C', 41.78, 2.73], SCFA: ['Santa Coloma de Farners', 'REG', 'Lloret', 'C', 41.86, 2.66], AMER: ['Amer', 'REG', 'Lloret', 'C', 42.01, 2.60],
+    SEU: ["La Seu d'Urgell", 'REL', "La Seu d'Urgell", 'B', 42.36, 1.46], BALA: ['Balaguer', 'REL', 'Balaguer', 'B', 41.79, 0.81], CERV: ['Cervera', 'REL', 'Balaguer', 'C', 41.67, 1.27], TAR: ['Tàrrega', 'REL', 'Balaguer', 'B', 41.65, 1.14],
+    LLEI: ['Lleida', 'REL', 'Lleida', 'A', 41.62, 0.62], MOLL: ['Mollerussa', 'REL', 'Lleida', 'C', 41.63, 0.89], SORT: ['Sort', 'REL', 'Tremp', 'B', 42.41, 1.13], TREM: ['Tremp', 'REL', 'Tremp', 'C', 42.17, 0.89], PONT: ['El Pont de Suert', 'REL', 'Tremp', 'C', 42.41, 0.74],
+    GRA: ['Granollers', 'REMN', 'Granollers', 'A', 41.61, 2.29], MOL: ['Mollet del Vallès', 'REMN', 'Granollers', 'B', 41.54, 2.21], SCE: ['Sant Celoni', 'REMN', 'Granollers', 'C', 41.69, 2.49],
+    MAT: ['Mataró', 'REMN', 'Mataró', 'A', 41.54, 2.44], PIN: ['Pineda de Mar', 'REMN', 'Mataró', 'B', 41.63, 2.69],
+    RUB: ['Rubí', 'REMN', 'Sabadell', 'B', 41.49, 2.03], SAB: ['Sabadell', 'REMN', 'Sabadell', 'A', 41.55, 2.11], TER: ['Terrassa', 'REMN', 'Sabadell', 'A', 41.56, 2.01],
+    BAD: ['Badalona', 'REMN', 'Badalona', 'A', 41.45, 2.25], SCG: ['Santa Coloma de Gramenet', 'REMN', 'Badalona', 'C', 41.45, 2.21],
+    MAR: ['Martorell', 'REMS', 'Martorell', 'B', 41.47, 1.93], IGU: ['Igualada', 'REMS', 'Martorell', 'B', 41.58, 1.62],
+    VIF: ['Vilafranca del Penedès', 'REMS', 'Vilafranca', 'B', 41.35, 1.70], VIL: ['Vilanova i la Geltrú', 'REMS', 'Vilafranca', 'B', 41.22, 1.73],
+    COR: ['Cornellà de Llobregat', 'REMS', "L'Hospitalet de Llobregat", 'B', 41.36, 2.07], GAV: ['Gavà', 'REMS', "L'Hospitalet de Llobregat", 'B', 41.30, 2.00], HOS: ["L'Hospitalet de Llobregat", 'REMS', "L'Hospitalet de Llobregat", 'A', 41.36, 2.10],
+    PLL: ['El Prat de Llobregat', 'REMS', "L'Hospitalet de Llobregat", 'C', 41.33, 2.09], SBOI: ['Sant Boi de Llobregat', 'REMS', "L'Hospitalet de Llobregat", 'C', 41.34, 2.04], SFE: ['Sant Feliu de Llobregat', 'REMS', "L'Hospitalet de Llobregat", 'B', 41.38, 2.05],
+    MONT: ['Montblanc', 'RET', 'Tarragona', 'C', 41.38, 1.16], TARR: ['Tarragona', 'RET', 'Tarragona', 'A', 41.12, 1.25], VALS: ['Valls', 'RET', 'Tarragona', 'C', 41.29, 1.25], VEND: ['El Vendrell', 'RET', 'Tarragona', 'B', 41.22, 1.53],
+    CAMB: ['Cambrils', 'RET', 'Reus', 'B', 41.07, 1.06], FALS: ['Falset', 'RET', 'Reus', 'C', 41.15, 0.82], HOSP: ["L'Hospitalet de l'Infant", 'RET', 'Reus', 'C', 40.99, 0.92], REUS: ['Reus', 'RET', 'Reus', 'A', 41.15, 1.11],
+    AMET: ["L'Ametlla de Mar", 'RETE', 'Amposta', 'C', 40.88, 0.80], AMPO: ['Amposta', 'RETE', 'Amposta', 'C', 40.71, 0.58], TORT: ['Tortosa', 'RETE', 'Amposta', 'B', 40.81, 0.52], ULLD: ['Ulldecona', 'RETE', 'Amposta', 'C', 40.60, 0.45],
+    ASCO: ['Ascó', 'RETE', "Móra d'Ebre", 'C', 41.18, 0.57], GAND: ['Gandesa', 'RETE', "Móra d'Ebre", 'C', 41.05, 0.44], MORA: ["Móra d'Ebre", 'RETE', "Móra d'Ebre", 'B', 41.09, 0.64]
+  };
+  /* Corones d'activació: 0 = parcs de l'escenari, 1 = parcs propers de la regió, 2 = següent corona, 3 = resta de Catalunya.
+     Arribada: 20 km per torn de 15 minuts, amb un 30 % de marge per carretera. */
+  function buildParks(sc) {
+    const P = {};
+    for (const k in CAT) {
+      const c = CAT[k], km = Math.hypot((c[4] - sc.center[0]) * 111, (c[5] - sc.center[1]) * 83) * 1.3, loc = k in sc.local;
+      P[k] = { name: c[0], region: c[1], agr: c[2], type: c[3], ubi: { A: 3, B: 2, C: 1 }[c[3]], zone: loc ? sc.local[k] : null, delay: loc ? 0 : Math.max(1, Math.round(km / 20)), corona: loc ? 0 : sc.c1.includes(k) ? 1 : sc.c2.includes(k) ? 2 : 3 };
+    }
+    return P;
+  }
+  const PLANNED = [
+['RET', 'El Gaià i voltants'], ['REG', 'De la Tordera al cap de Creus'], ['REC', 'Naixement del Llobregat i Cardona']
+  ];
+  let cur, ZONES, AGR, AGRUP, PARKS, STREETS, CURVE, W1, W2;
+  function use(id) { cur = SCEN[id] || SCEN.remn; ZONES = cur.zones; AGR = cur.agr; AGRUP = cur.agrup; PARKS = cur.parks || (cur.parks = buildParks(cur)); STREETS = cur.streets; CURVE = cur.curve; W1 = cur.w1; W2 = cur.w2; return cur; }
+  use('remn');
+  const TXT = {
+    1: [
+      'Vehicle atrapat a la riera amb dues persones a dins',
+      "Aigua al soterrani; l'alertant diu que el veí gran del baix no contesta",
+      'Persona enfilada al sostre del cotxe en un pas inundat',
+      'Ascensor aturat amb una persona a dins i el quadre elèctric mullat',
+      'Mur caigut sobre un pati; se senten crits',
+      'Planta baixa inundada amb una persona amb mobilitat reduïda al llit'
+    ],
+    2: [
+      'Façana amb despreniments sobre la vorera',
+      'Cable elèctric caigut i espurnejant sobre el carrer',
+      'Arbre inclinat a punt de caure sobre la calçada amb trànsit',
+      'Esvoranc a la calçada que es va fent gran',
+      'Mur de contenció bombat i amb esquerdes noves',
+      'Bastida moguda pel vent sobre un carrer de vianants'
+    ],
+    3: [
+      'Aigua a la sala de quadres elèctrics del CAP',
+      "Grup electrogen d'una residència a punt de quedar-se sense combustible",
+      "Estació de bombament d'aigua potable inundada",
+      "Entrada d'aigua al magatzem de farmàcia de l'hospital",
+      'Centre de telecomunicacions amb aigua a la planta baixa'
+    ],
+    4: [
+      "Garatge comunitari amb un pam d'aigua, sense ningú a dins",
+      'Arbre caigut en un parc, sense afectar el pas',
+      "Soterrani d'un local comercial inundat",
+      'Tendal despenjat sobre una terrassa buida',
+      'Branca caiguda sobre un cotxe aparcat',
+      'Embornal tapat, aigua acumulada al carrer',
+      "Tanca d'obra tombada sobre la vorera",
+      "Aigua al traster d'un bloc de pisos"
+    ],
+    obs: [
+      "L'alertant torna a trucar: l'aigua ja ha baixat i no cal que hi anem",
+      'La Policia Local informa que ja ha retirat la branca',
+      "Truquen per anul·lar l'avís: ho ha resolt la brigada municipal"
+    ]
+  };
+  const WORK = { 1: 2, 2: 2, 3: 2, 4: 1 };
+  const PREP = [
+    { id: 'org', label: 'Organitzar la sala per grups de comunicació i assignar un TEOC per grup, amb un de relleu' },
+    { id: 'filtre', label: "Establir el filtratge d'actuacions (duplicades i no vigents)" },
+    { id: 'cp', label: "Determinar la ubicació i l'àmbit dels controls parc" },
+    { id: 'reserva', label: 'Preveure els recursos de reforç i reserva i prealertar els parcs veïns' },
+    { id: 'comunica', label: "Comunicar el dispositiu a tot el personal i als parcs afectats abans que comenci l'episodi" }
+  ];
+
+  const EVENTS = [
+    {
+      id: 'cct_g1', role: 'cct', get title() { return cur.g1.title; },
+      trigger: S => S.round >= cur.g1.r && !S.st.pc[cur.g1.zone],
+      text: S => cur.g1.text(zoneCount(S, cur.g1.zone)),
+      get opts() { return [
+        { t: cur.g1.good, good: true, fx: 'pcg1' },
+        { t: 'Espero a superar les 20 actuacions per desplegar el punt de comandament', cat: 'estructures' },
+        { t: cur.g1.bad, cat: 'estructures' }
+      ]; },
+      guia: "Més de 20 actuacions en un àmbit concret, o abans si la gravetat ho justifica. El control parc continua gestionant la resta d'actuacions de l'àmbit assignat."
+    },
+    {
+      id: 'cct_g2', role: 'cct', get title() { return cur.g2.title; },
+      trigger: S => S.round >= cur.g2.r && !S.st.pc[cur.g2.zone],
+      text: S => cur.g2.text(zoneCount(S, cur.g2.zone)),
+      get opts() { return [
+        { t: cur.g2.good, good: true, fx: 'pcg2' },
+        { t: cur.g2.bad, cat: 'estructures' },
+        { t: 'Ho gestiona directament la sala, que té la visió de conjunt', cat: 'estructures' }
+      ]; },
+      guia: "Es delimita una bombolla geogràfica amb màxima concentració d'actuacions i s'hi assigna un cap d'intervenció al lloc. Amb més d'un punt de comandament en una zona, cal escalar a CCA."
+    },
+    {
+      id: 'teoc_p1', role: 'teoc', title: 'Avís amb persones en risc',
+      trigger: S => S.round >= 3 && anyCP(S),
+      text: () => "Entra un avís d'un vehicle atrapat amb persones a dins, dins de l'àmbit d'un control parc actiu. Què fa la sala?",
+      opts: [
+        { t: "El traspasso al control parc, l'aviso expressament que hi ha persones en risc i en faig el seguiment", good: true },
+        { t: "El traspasso amb la resta d'actuacions de l'àmbit: el control parc ja prioritza", cat: 'persones' },
+        { t: 'Hi envio una UBI directament des de sala, sense passar pel control parc', cat: 'persones' }
+      ],
+      guia: "Les gestiona l'estructura responsable de l'àmbit. La SCT garanteix que l'avís queda identificat, arriba a l'estructura corresponent, en fa el seguiment i hi destina recursos si cal."
+    },
+    {
+      id: 'pc_alcaldessa', role: 'cct', title: "L'alcaldessa al punt de comandament",
+      trigger: S => anyPC(S),
+      text: () => "El cap d'intervenció del punt de comandament us truca: l'alcaldessa li acaba de dir que una residència de gent gran té aigua a la planta baixa. A la sala no hi consta cap avís.",
+      opts: [
+        { t: "Ho incorporem ara com a actuació P1 i la traspassem al punt de comandament perquè hi destini recursos", good: true, fx: 'hiddenNow' },
+        { t: "Que l'alcaldessa truqui al 112 perquè entri pel circuit habitual", cat: 'persones', fx: 'hiddenLate' },
+        { t: "Ho anotem i ho mirarem quan baixi el volum d'actuacions", cat: 'persones', fx: 'hiddenLate' }
+      ],
+      guia: 'El punt de comandament és el punt de referència per a les autoritats i les agències. Coneixen el seu municipi i sovint saben abans que ningú on hi ha els problemes greus.'
+    },
+    {
+      id: 'cp_fatiga', role: 'cct', title: 'El control parc demana relleus',
+      trigger: S => anyCP(S) && S.ubis.some(u => u.zone !== null && u.fat >= 5),
+      text: S => { const u = S.ubis.filter(x => x.zone !== null).sort((a, b) => b.fat - a.fat)[0]; S.evData = u.id; return 'El control parc us informa que la ' + u.id + " encadena actuacions sense parar i contesta tard per l'emissora. Demana autorització per rellevar-la."; },
+      opts: [
+        { t: "Autoritzo el relleu ara i que quedi registrat el canvi de personal", good: true, fx: 'restUbi' },
+        { t: "Que acabin les actuacions de l'àrea i després ja descansaran", cat: 'seguretat', fx: 'tireUbi' },
+        { t: 'Que els enviïn a actuacions més senzilles, sense aturar-se', cat: 'seguretat', fx: 'tireUbi' }
+      ],
+      guia: "La fatiga és un factor de risc operatiu. El control parc o el cap d'intervenció anticipa els relleus i garanteix que es puguin fer. Cal comunicar i registrar tots els canvis de personal i de vehicles."
+    },
+    {
+      id: 'cp_desplaca', role: 'cct', title: "L'episodi es desplaça",
+      trigger: S => S.round >= 7 && anyCP(S),
+      text: () => cur.shift + ' Els controls parc us pregunten com s\'han de reorganitzar.',
+      opts: [
+        { t: 'Que revaluïn i redefineixin les àrees, amb nom, responsable i recursos, i que ho comuniquin', good: true },
+        { t: 'Que mantinguin les àrees per no generar confusió per emissora', cat: 'estructures' },
+        { t: 'Que cada UBI triï on va, sense àrees', cat: 'estructures' }
+      ],
+      guia: "Revaluar i redefinir les àrees si l'episodi es desplaça. Cada àrea té un nom curt i inequívoc, un responsable i els seus recursos."
+    },
+    {
+      id: 'cct_eines', role: 'cct', title: "Cauen les eines informàtiques",
+      trigger: S => S.round >= 8 && anyCP(S),
+      text: () => "Les tauletes de les UBI deixen de sincronitzar: no poden obrir ni tancar actuacions amb l'aplicació.",
+      opts: [
+        { t: 'El control parc dona suport a les UBI, i la sala dona suport als controls parc i als punts de comandament', good: true },
+        { t: 'La sala torna a gestionar totes les actuacions una per una', cat: 'sala', fx: 'capPenalty' },
+        { t: 'Aturem les actuacions no urgents fins que torni el sistema', cat: 'sala' }
+      ],
+      guia: 'Si no es pot fer amb les eines informàtiques, el control parc dona suport a les UBI, i les sales de control donen suport als punts de comandament i als controls parc.'
+    },
+    {
+      id: 'cct_recup', role: 'cct', title: 'Comença la recuperació',
+      trigger: S => S.round >= 12 && (anyCP(S) || anyPC(S) || S.st.cca),
+      text: () => "L'episodi afluixa i les actuacions pendents baixen. Com retires el dispositiu?",
+      opts: [
+        { t: 'En ordre invers: CCA, punts de comandament i control parc, indicant qui recupera cada àmbit i des de quin moment', good: true },
+        { t: 'Tanco totes les estructures alhora i la sala ho recupera tot', cat: 'estructures' },
+        { t: 'Primer els controls parc, que són els que tenen menys feina', cat: 'estructures' }
+      ],
+      guia: "Fer el desescalat en l'ordre invers (CCA → punts de comandament → control parc), indicant sempre qui recupera cada àmbit i des de quin moment."
+    }
+  ];
+
+  function rnd(S) {
+    S.rs = (S.rs + 0x6D2B79F5) | 0; let t = S.rs;
+    t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  }
+  const pick = (S, a) => a[Math.floor(rnd(S) * a.length)];
+  const anyCP = S => S.st.cp.S === 'on' || S.st.cp.N === 'on';
+  const anyPC = S => Object.values(S.st.pc).some(v => v === 'on');
+  const pcCount = S => Object.values(S.st.pc).filter(v => v).length;
+  const live = a => a.state === 'inbox' || a.state === 'held' || a.state === 'open';
+  const cpN = g => 'Control parc de ' + PARKS[AGR[g].park].name + ' (' + AGR[g].name + ')';
+  const total = S => S.acts.filter(live).length;
+  const held = S => S.acts.filter(a => a.state === 'held');
+  /* Càrrega que pot assumir el terreny: 4 actuacions enviades per UBI present a la zona. */
+  const fieldLoad = (S, z) => { const n = S.ubis.filter(u => u.zone === z).length; return { open: S.acts.filter(a => a.zone === z && a.state === 'open').length, limit: Math.max(4, 4 * n) }; };
+  const zoneCount = (S, z) => S.acts.filter(a => a.zone === z && live(a)).length;
+  const agrCount = (S, g) => S.acts.filter(a => ZONES[a.zone].agr === g && live(a)).length;
+  const inbox = S => S.acts.filter(a => a.state === 'inbox');
+  const zoneOwner = (S, z) => S.st.pc[z] === 'on' ? 'pc' : (S.st.cp[ZONES[z].agr] === 'on' ? 'cp' : 'sct');
+  const clock = r => { const m = 17 * 60 + (r - 1) * 15; return String(Math.floor(m / 60)).padStart(2, '0') + ':' + String(m % 60).padStart(2, '0'); };
+
+  function log(S, msg, lvl) { S.log.unshift({ r: S.round, msg, lvl: lvl || 'info' }); }
+  function key(S, msg, ok) { S.keys.push({ r: S.round, msg, ok: !!ok }); }
+
+  function newGame(seed, sc) {
+    use(sc);
+    const S = {
+      v: 1, sc: cur.id, seed: seed || 2026, rs: seed || 2026, round: 0, phase: 'prep',
+      prep: { org: false, filtre: false, cp: false, reserva: false, comunica: false },
+      acts: [], ubis: [], nextId: 1, used: 0, carry: {},
+      st: { cp: { S: null, N: null }, pc: {}, cca: null },
+      logi: { S: null, N: null }, log: [], keys: [], event: null, evDone: [], evData: null, evResult: null,
+      capPen: 0, recalls: [], hidden: null,
+      m: { lateCP: 0, latePC: 0, lateCCA: 0, orderErr: 0, premature: 0, antic: 0, sat: 0, over: 0, incidents: 0, fatRounds: 0, uncovered: 0, cls: 0, clsOk: 0, errs: [], ev: { persones: 0, estructures: 0, sala: 0, seguretat: 0 }, p1: [] }
+    };
+    for (const k in PARKS) for (let i = 1; i <= PARKS[k].ubi; i++)
+      S.ubis.push({ id: k + '-' + i, park: k, zone: PARKS[k].zone, dest: null, eta: 0, mode: 'int', fat: 0, lock: 0 });
+    return S;
+  }
+
+  function addAct(S, zone, kind, text, extra) {
+    const a = Object.assign({ id: S.nextId++, zone, kind, text, born: S.round, cls: null, state: 'inbox', work: WORK[kind] || 1, first: null, dupOf: null }, extra || {});
+    S.acts.push(a); return a;
+  }
+  function spawn(S) {
+    const r = S.round, w = r <= 6 ? W1 : W2;
+    for (let i = 0; i < (CURVE[r] || 0); i++) {
+      let x = rnd(S), z = 0; while (z < 5 && x > w[z]) { x -= w[z]; z++; }
+      const k = rnd(S); let kind = k < 0.10 ? 1 : k < 0.27 ? 2 : k < 0.35 ? 3 : k < 0.80 ? 4 : k < 0.93 ? 'dup' : 'obs';
+      const loc = pick(S, STREETS) + ', ' + pick(S, ZONES[z].towns);
+      if (kind === 'dup') {
+        const c = S.acts.filter(a => a.zone === z && live(a) && typeof a.kind === 'number');
+        if (c.length) { const o = pick(S, c); addAct(S, z, 'dup', o.text, { dupOf: o.id }); continue; }
+        kind = 4;
+      }
+      addAct(S, z, kind, pick(S, (cur.txt && cur.txt[kind]) || TXT[kind]) + ', a ' + loc);
+    }
+    for (const g of [cur.g1, cur.g2]) if (r === g.r) { for (const a of g.acts) addAct(S, g.zone, a[0], a[1]); log(S, g.log, 'bad'); }
+    S.recalls = S.recalls.filter(q => { if (q.r <= r) { addAct(S, q.zone, q.kind, 'Retrucada: ' + q.text, { born: q.born }); return false; } return true; });
+    if (S.hidden && S.hidden.r <= r) { addAct(S, S.hidden.zone, 1, "Residència de gent gran amb aigua a la planta baixa i residents que no poden pujar, avís de l'Ajuntament", { born: S.hidden.born }); S.hidden = null; }
+  }
+
+  function cap(S) {
+    let base = S.prep.org ? 10 : (S.round > 6 ? 6 : 7);
+    const tracked = S.acts.filter(a => a.state === 'open' && zoneOwner(S, a.zone) === 'sct').length;
+    let c = base - Math.floor(tracked / 3) - (pcCount(S) >= 2 && !S.st.cca ? 3 : 0) - (S.capPen > 0 ? 4 : 0);
+    return Math.max(2, c);
+  }
+
+  function start(S) {
+    S.phase = 'play'; S.round = 1;
+    const n = PREP.filter(p => S.prep[p.id]).length;
+    log(S, 'Comença l\'episodi. Dispositiu de preparació: ' + n + ' de ' + PREP.length + ' mesures.', n === PREP.length ? 'good' : 'warn');
+    spawn(S);
+  }
+
+  function classify(S, id, cls) {
+    const a = S.acts.find(x => x.id === id); if (!a || a.state !== 'inbox') return 'no';
+    const cost = zoneOwner(S, a.zone) === 'sct' ? 1 : 0.5; /* traspàs a una estructura: mitja gestió */
+    if (S.used + cost > cap(S)) return 'sat';
+    S.used += cost; S.m.cls++;
+    const real = typeof a.kind === 'number';
+    if (cls === 'close') {
+      a.state = 'closed';
+      if (!real) S.m.clsOk++;
+      else {
+        S.m.errs.push({ id: a.id, text: a.text, did: 'Tancada com a duplicada o no vigent', was: 'P' + a.kind });
+        S.recalls.push({ r: S.round + 2, zone: a.zone, kind: a.kind, text: a.text, born: a.born });
+        if (a.kind === 1) { S.m.ev.persones -= 20; key(S, "Has tancat com a duplicat un avís amb persones en risc (#" + a.id + ").", false); }
+      }
+    } else {
+      a.cls = cls; a.state = 'held';
+      if (real && cls === a.kind) S.m.clsOk++;
+      else S.m.errs.push({ id: a.id, text: a.text, did: 'Classificada P' + cls, was: real ? 'P' + a.kind : (a.kind === 'dup' ? 'duplicada' : 'no vigent') });
+      if (!real) a.work = 1;
+      if (a.kind === 1 && cls > 1) { S.m.ev.persones -= 10; key(S, "Un avís amb persones en risc s'ha classificat P" + cls + ' (#' + a.id + ').', false); }
+    }
+    return 'ok';
+  }
+
+  /* Segona bústia: enviar al terreny per paquets (zona i prioritat; null = totes). */
+  function send(S, zone, pri) {
+    let n = 0;
+    for (const a of S.acts) if (a.state === 'held' && (zone === null || a.zone === zone) && (pri === null || a.cls === pri)) { a.state = 'open'; a.sent = S.round; n++; }
+    return n;
+  }
+
+  function setCP(S, g, on) {
+    if (on) {
+      if (S.st.cp[g]) return;
+      const first = !cur.multi && !S.st.cp.S && !S.st.cp.N, c = first ? total(S) : agrCount(S, g), fast = S.prep.cp && S.prep.comunica;
+      S.st.cp[g] = fast ? 'on' : 'pend';
+      if (c <= 10 && c >= 5) { S.m.antic++; key(S, cpN(g) + ' activat amb ' + c + " actuacions, abans de superar el llindar de 10.", true); }
+      else if (c > 10) key(S, cpN(g) + ' activat amb ' + c + ' actuacions.', c <= 14);
+      log(S, 'Control parc de ' + PARKS[AGR[g].park].name + ' (' + AGR[g].name + ')' + (fast ? ' actiu.' : " activat: serà operatiu el torn següent (el dispositiu no estava predefinit i comunicat)."), 'good');
+    } else {
+      if (!S.st.cp[g]) return;
+      const pcs = AGR[g].zones.some(z => S.st.pc[z]);
+      if (S.st.cca || pcs) { S.m.orderErr++; key(S, 'Has retirat el c' + cpN(g).slice(1) + ' abans que ' + (S.st.cca ? 'el CCA' : 'el punt de comandament') + ": l'ordre és CCA → punts de comandament → control parc.", false); }
+      if (agrCount(S, g) > 10) { S.m.premature++; key(S, cpN(g) + ' retirat amb més de 10 actuacions obertes.', false); }
+      S.st.cp[g] = null; S.logi[g] = null;
+      log(S, cpN(g) + " retirat. La sala recupera l'àmbit.", 'info');
+    }
+  }
+  function setPC(S, z, on) {
+    const g = ZONES[z].agr;
+    if (on) {
+      if (S.st.pc[z]) return;
+      const c = zoneCount(S, z), fast = S.st.cp[g] === 'on';
+      S.st.pc[z] = fast ? 'on' : 'pend';
+      key(S, 'Punt de comandament a ' + ZONES[z].name + ' desplegat amb ' + c + ' actuacions' + (fast ? ', a partir del control parc.' : ', sense control parc previ.'), c <= 24 && fast);
+      log(S, 'Punt de comandament a ' + ZONES[z].name + (fast ? ' actiu.' : " en desplegament: serà operatiu el torn següent."), 'good');
+    } else {
+      if (!S.st.pc[z]) return;
+      if (S.st.cca) { S.m.orderErr++; key(S, 'Has retirat un punt de comandament amb el CCA encara actiu.', false); }
+      if (zoneCount(S, z) > 20) { S.m.premature++; key(S, 'Punt de comandament de ' + ZONES[z].name + ' retirat amb més de 20 actuacions.', false); }
+      delete S.st.pc[z];
+      log(S, 'Punt de comandament de ' + ZONES[z].name + ' retirat.', 'info');
+    }
+  }
+  function setCCA(S, on) {
+    if (on) {
+      if (S.st.cca) return;
+      if (!anyCP(S) && !anyPC(S)) return 'cal';
+      S.st.cca = 'on';
+      key(S, cur.cca + ' desplegat amb ' + pcCount(S) + (pcCount(S) === 1 ? ' punt' : ' punts') + ' de comandament. Nivell SISCOM 3.', pcCount(S) >= 2);
+      log(S, cur.cca + " actiu. És l'interlocutor únic amb la sala (SISCOM 3).", 'good');
+    } else {
+      if (!S.st.cca) return;
+      if (pcCount(S) >= 2) { S.m.premature++; key(S, 'CCA retirat amb més d\'un punt de comandament actiu.', false); }
+      S.st.cca = null; log(S, 'CCA retirat.', 'info');
+    }
+  }
+  function setLogi(S, g) { if (S.st.cp[g] === 'on' && !S.logi[g]) { S.logi[g] = S.round; S.logiEver = true; log(S, "Logística activada a l'" + AGR[g].name + ': avituallament, combustible, material i unitat Limes.', 'good'); } }
+
+  function moveUbi(S, id, zone) {
+    const u = S.ubis.find(x => x.id === id); if (!u) return;
+    if (zone === null) { u.zone = null; u.dest = null; u.eta = 0; u.fat = 0; u.mode = 'int'; log(S, u.id + ' torna al seu parc.', 'info'); return; }
+    const ext = u.zone === null;
+    if (!ext && u.zone === zone && u.dest === null) return;
+    u.dest = zone; u.eta = ext ? Math.max(1, PARKS[u.park].delay - (S.prep.reserva ? 1 : 0)) : 1;
+    if (!ext) u.zone = -1; /* en trànsit entre zones */
+  }
+  /* Activa una corona: una UBI de cada parc que en conservi almenys una altra de cobertura. */
+  function sendCorona(S, c, zone) {
+    let n = 0;
+    for (const k in PARKS) if (PARKS[k].corona === c) {
+      const home = S.ubis.filter(u => u.park === k && u.zone === null && u.dest === null);
+      if (home.length >= 2) { moveUbi(S, home[0].id, zone); n++; }
+    }
+    if (n) log(S, 'Corona ' + c + ' activada: ' + n + ' UBI en camí cap a ' + ZONES[zone].name + '.', 'good');
+    return n;
+  }
+  function setMode(S, id, mode) {
+    const u = S.ubis.find(x => x.id === id); if (!u || u.lock > 0) return;
+    if (mode === 'disc' && (u.zone === null || u.zone < 0 || zoneOwner(S, u.zone) === 'sct')) return;
+    u.mode = mode;
+  }
+
+  /* El terreny (controls parc i punts de comandament) funciona sol: logística, relleus, discriminador i repartiment de les UBI dins l'àmbit. */
+  function autoField(S) {
+    for (const g in AGR) if (S.st.cp[g] === 'on' && !S.logi[g]) setLogi(S, g);
+    for (const z of ZONES) {
+      if (zoneOwner(S, z.id) === 'sct') continue;
+      const here = S.ubis.filter(u => u.zone === z.id && u.dest === null && u.lock === 0);
+      for (const u of here) if (u.mode === 'rest' && u.fat <= 1) u.mode = 'int';
+      for (const u of here.slice().sort((a, b) => b.fat - a.fat)) if (u.mode !== 'rest' && u.fat >= 6 && here.filter(x => x.mode !== 'rest').length > 1) u.mode = 'rest';
+      const open = S.acts.filter(a => a.zone === z.id && a.state === 'open').length, act = here.filter(u => u.mode !== 'rest');
+      if (open >= 8 && act.length >= 3 && !act.some(u => u.mode === 'disc')) act[act.length - 1].mode = 'disc';
+      if (open < 4) for (const u of here) if (u.mode === 'disc') u.mode = 'int';
+    }
+    const need = z => S.acts.filter(a => a.zone === z && a.state === 'open').reduce((t, a) => t + (a.cls === 1 ? 4 : a.cls < 4 ? 2 : 1), 0);
+    const cnt = z => S.ubis.filter(u => u.zone === z || u.dest === z).length;
+    for (const g in AGR) if (S.st.cp[g] === 'on') {
+      const zs = AGR[g].zones;
+      for (const z of zs) {
+        if (S.st.pc[z] === 'on' || need(z) > 0) continue;
+        for (const u of S.ubis.filter(x => x.zone === z && x.dest === null && x.mode === 'int' && x.lock === 0)) {
+          const best = zs.map(x => ({ x, v: need(x) / (cnt(x) + 1) })).sort((a, b) => b.v - a.v)[0];
+          if (best && best.v > 0 && best.x !== z) moveUbi(S, u.id, best.x);
+        }
+      }
+    }
+  }
+
+  function resolve(S) {
+    for (const z of ZONES) {
+      const here = S.ubis.filter(u => u.zone === z.id && u.eta === 0);
+      const n = zoneCount(S, z.id), noPC = n > 20 && S.st.pc[z.id] !== 'on';
+      const fl = fieldLoad(S, z.id), over = fl.open > fl.limit && S.ubis.some(u => u.zone === z.id);
+      if (over) { S.m.over++; if (!S['wo' + z.id]) { S['wo' + z.id] = 1; key(S, z.name + ': el terreny té ' + fl.open + " actuacions enviades i només en pot assumir " + fl.limit + '. Les unitats perden eficàcia.', false); } }
+      let w = S.carry[z.id] || 0;
+      for (const u of here) if (u.mode === 'int') w += (u.fat >= 6 ? 0.5 : 1) * (noPC ? 0.6 : 1) * (over ? 0.7 : 1);
+      const q = S.acts.filter(a => a.zone === z.id && a.state === 'open').sort((a, b) => a.cls - b.cls || a.born - b.born);
+      for (const a of q) {
+        if (w < 0.5) break;
+        if (a.first === null) a.first = S.round;
+        const d = Math.min(w, a.work); a.work -= d; w -= d;
+        if (a.work <= 0.001) a.state = 'done';
+      }
+      S.carry[z.id] = q.some(a => a.state === 'open') ? Math.min(w, 0.5) : 0;
+      for (const u of here) if (u.mode === 'disc') {
+        let k = 2;
+        const pend = S.acts.filter(a => a.zone === z.id && a.state === 'open');
+        for (const a of pend) { if (k && typeof a.kind !== 'number') { a.state = 'closed'; k--; } }
+        for (const a of pend) { if (k && a.state === 'open' && a.kind === 4 && a.cls === 4) { a.state = 'done'; k--; } }
+        let fix = 2; for (const a of pend) if (fix && a.state === 'open' && typeof a.kind === 'number' && a.cls !== a.kind) { a.cls = a.kind; fix--; }
+      }
+    }
+  }
+
+  function advance(S) {
+    if (S.phase !== 'play' || S.event) return;
+    /* estructures: es valoren amb la foto que els jugadors tenien davant */
+    if (!cur.multi && total(S) > 10 && !S.st.cp.S && !S.st.cp.N) { S.m.lateCP++; if (!S.wAgr) { S.wAgr = 1; key(S, "L'agrupació " + AGRUP.name + ' supera les 10 actuacions sense cap control parc.', false); } }
+    else for (const g in AGR) if (agrCount(S, g) > 10 && !S.st.cp[g]) { S.m.lateCP++; if (!S['w' + g]) { S['w' + g] = 1; key(S, "L'" + AGR[g].name + ' supera les 10 actuacions sense control parc' + (cur.multi ? '.' : ' propi.'), false); } }
+    for (const a of held(S)) if (a.cls === 1 && !a.heldWarn) { a.heldWarn = true; log(S, 'Avís #' + a.id + ' prioritzat P1 però no enviat al terreny.', 'bad'); }
+    for (const z of ZONES) if (zoneCount(S, z.id) > 20 && !S.st.pc[z.id]) { S.m.latePC++; if (!S['wz' + z.id]) { S['wz' + z.id] = 1; key(S, z.name + ' supera les 20 actuacions sense punt de comandament.', false); } }
+    if (pcCount(S) >= 2 && !S.st.cca) { S.m.lateCCA++; if (!S.wcca) { S.wcca = 1; key(S, "Hi ha més d'un punt de comandament i no s'ha escalat a CCA.", false); } }
+    const left = inbox(S).length;
+    if (left > 3) { S.m.sat++; log(S, 'Sala saturada: ' + left + ' avisos sense gestionar en acabar el torn.', 'bad'); }
+
+    autoField(S);
+    resolve(S);
+
+    for (const a of S.acts) if (a.kind === 1 && live(a) && a.first === null && !a.late && S.round - a.born >= 2) {
+      a.late = true; log(S, 'Avís #' + a.id + ' amb persones en risc: 45 minuts sense cap unitat.', 'bad');
+      key(S, 'Persones en risc 45 minuts sense atendre (#' + a.id + ', ' + ZONES[a.zone].name + ').', false);
+    }
+    for (const u of S.ubis) {
+      if (u.lock > 0) { u.lock--; if (u.lock === 0) u.mode = 'int'; }
+      if (u.zone !== null && u.zone >= 0) {
+        if (u.mode === 'rest') u.fat = Math.max(0, u.fat - 3);
+        else { u.fat += S.logi[ZONES[u.zone].agr] ? 0.6 : 1; if (u.fat >= 6) S.m.fatRounds++; }
+        if (u.fat >= 10) { S.m.incidents++; u.mode = 'rest'; u.lock = 2; u.fat = 7; log(S, 'Incident de seguretat a la ' + u.id + ' per fatiga. La unitat queda fora de servei dos torns.', 'bad'); key(S, 'Incident de seguretat per fatiga a la ' + u.id + '.', false); }
+      }
+      if (u.dest !== null) { u.eta--; if (u.eta <= 0) { u.zone = u.dest; u.dest = null; u.eta = 0; log(S, u.id + ' arriba a ' + ZONES[u.zone].name + '.', 'info'); } }
+    }
+    for (const k in PARKS) if (PARKS[k].zone === null && !S.ubis.some(u => u.park === k && u.zone === null && u.dest === null)) S.m.uncovered++;
+    for (const g in AGR) if (S.st.cp[g] === 'pend') { S.st.cp[g] = 'on'; log(S, cpN(g) + ' operatiu.', 'good'); }
+    for (const z in S.st.pc) if (S.st.pc[z] === 'pend') { S.st.pc[z] = 'on'; log(S, 'Punt de comandament de ' + ZONES[z].name + ' operatiu.', 'good'); }
+    if (S.capPen > 0) S.capPen--;
+
+    S.round++; S.used = 0;
+    if (S.round > ROUNDS) return finish(S);
+    spawn(S);
+    const e = EVENTS.find(x => !S.evDone.includes(x.id) && x.trigger(S));
+    if (e) { S.event = e.id; S.evText = e.text(S); }
+  }
+
+  function answer(S, i) {
+    const e = EVENTS.find(x => x.id === S.event); if (!e) return;
+    const o = e.opts[i];
+    if (o.good) key(S, e.title + ': decisió alineada amb la guia.', true);
+    else { S.m.ev[o.cat] -= 8; key(S, e.title + ': «' + o.t + '».', false); }
+    if (o.fx === 'hiddenNow') { const z = +Object.keys(S.st.pc)[0]; const a = addAct(S, z, 1, "Residència de gent gran amb aigua a la planta baixa i residents que no poden pujar, avís de l'Ajuntament"); a.cls = 1; a.state = 'open'; }
+    if (o.fx === 'hiddenLate') { const z = +Object.keys(S.st.pc)[0]; S.hidden = { r: S.round + 2, zone: z, born: S.round }; }
+    if (o.fx === 'restUbi') { const u = S.ubis.find(x => x.id === S.evData); if (u) u.mode = 'rest'; }
+    if (o.fx === 'tireUbi') { const u = S.ubis.find(x => x.id === S.evData); if (u) u.fat += 2; }
+    if (o.fx === 'capPenalty') S.capPen = 2;
+    if (o.fx === 'pcg1') setPC(S, cur.g1.zone, true);
+    if (o.fx === 'pcg2') setPC(S, cur.g2.zone, true);
+    S.evDone.push(e.id); S.evResult = { title: e.title, good: !!o.good, guia: e.guia }; S.event = null;
+  }
+
+  function canClose(S) { return S.phase === 'play' && S.round >= 13 && !S.acts.some(live) && !S.event; }
+
+  function finish(S) {
+    S.phase = 'end';
+    const m = S.m, cl = x => Math.max(0, Math.min(100, Math.round(x)));
+    let per = 100 + m.ev.persones;
+    for (const a of S.acts) if (a.kind === 1) {
+      const w = a.first === null ? 99 : a.first - a.born;
+      if (a.state === 'closed') continue;
+      if (w >= 99) per -= 20; else if (w >= 2) per -= 12; else if (w === 1) per -= 3;
+    }
+    const pend = inbox(S).length;
+    const pri = (m.cls + pend) ? 100 * m.clsOk / (m.cls + pend) : 0;
+    const leftAct = (S.st.cca ? 1 : 0) + pcCount(S) + ['S', 'N'].filter(g => S.st.cp[g]).length;
+    if (leftAct) key(S, "L'episodi acaba amb " + leftAct + ' estructures sense recuperar.', false);
+    const est = 100 + m.ev.estructures - 8 * (m.lateCP + m.latePC + m.lateCCA) - 10 * m.orderErr - 8 * leftAct - 6 * m.premature + 3 * m.antic;
+    const unres = S.acts.filter(live).length;
+    if (unres) key(S, "L'episodi acaba amb " + unres + ' actuacions sense resoldre.', false);
+    const sala = 100 + m.ev.sala - 9 * m.sat - 3 * m.over - Math.min(30, unres);
+    const noPrep = PREP.filter(p => !S.prep[p.id]).length;
+    const everLogi = !!S.logiEver;
+    const seg = 100 + m.ev.seguretat - 20 * m.incidents - 1.5 * m.fatRounds - 4 * m.uncovered - 5 * noPrep - (everLogi ? 0 : 15);
+    if (!everLogi) key(S, "No s'ha activat la logística en cap control parc.", false);
+    if (m.uncovered) key(S, 'Parcs veïns sense cap UBI de cobertura durant ' + m.uncovered + ' torns.', false);
+    const sc = { persones: cl(per), estructures: cl(est), prioritats: cl(pri), sala: cl(sala), seguretat: cl(seg) };
+    sc.total = Math.round(sc.persones * 0.30 + sc.estructures * 0.25 + sc.prioritats * 0.15 + sc.sala * 0.15 + sc.seguretat * 0.15);
+    S.score = sc; return sc;
+  }
+
+  G.SIM = { ROUNDS, SCEN, PLANNED, use, PREP, EVENTS, newGame, start, classify, setCP, setPC, setCCA, setLogi, moveUbi, setMode, advance, answer, finish, send, sendCorona, held, fieldLoad, total,  canClose, cap, inbox, zoneCount, agrCount, zoneOwner, pcCount, anyCP, anyPC, clock, live };
+  for (const k of ['ZONES', 'AGR', 'PARKS', 'AGRUP']) Object.defineProperty(G.SIM, k, { get: () => ({ ZONES, AGR, PARKS, AGRUP })[k] });
+  Object.defineProperty(G.SIM, 'SC', { get: () => cur });
+})(typeof window !== 'undefined' ? window : globalThis);
+
+</script>
+<script>
+(function () {
+  const E = window.SIM, $ = s => document.querySelector(s);
+  let S, tab = 'teoc', modal = null, flash = '', showRest = false;
+  const dest = {};
+  const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const ROLE = { teoc: 'TEOC', cct: 'Charlie · Cap de coordinació territorial' };
+  const RSHORT = { teoc: 'TEOC', cct: 'Charlie' };
+  const guided = () => S.guided !== false;
+  function ensure() { S.pq = S.pq || {}; S.pstep = S.pstep || 0; S.prac = S.prac || {}; }
+
+  /* ---------- preparació en missions ---------- */
+  const PRAC = [
+    { t: 'Vehicle atrapat en un gual amb una persona a dins que demana ajuda', a: '1', why: 'P1: hi ha una persona en risc.' },
+    { t: "Garatge comunitari amb un pam d'aigua, sense ningú a dins", a: '4', why: 'P4: no hi ha risc directe ni immediat per a ningú.' },
+    { t: 'Cable elèctric caigut sobre un carrer inundat', a: '2', why: 'P2: és un risc associat que pot posar en perill les persones.' },
+    { t: 'Segona trucada pel mateix vehicle atrapat al gual', a: 'close', why: "Duplicat: ja tens l'actuació oberta. Comprova si aporta informació nova i tanca-la." }
+  ];
+  const PLAB = { 1: 'P1', 2: 'P2', 3: 'P3', 4: 'P4', close: 'Duplicat o no vigent' };
+  function missions() {
+    const cps = Object.values(E.AGR).map(g => E.PARKS[g.park].name + " per a l'" + g.name).join(' i ');
+    const c1 = Object.keys(E.PARKS).filter(k => E.PARKS[k].corona === 1).map(k => E.PARKS[k].name);
+    const c1t = c1.slice(0, 4).join(', ') + (c1.length > 4 ? '…' : '');
+    return [
+      { id: 'org', role: 'cct', title: 'Organitza la sala', q: 'Abans que comenci a ploure, com organitzes els TEOC de la sala?',
+        opts: [{ t: 'Per grups de comunicació: un TEOC per grup i un altre de relleu', good: true }, { t: 'Tots els TEOC agafen avisos de tota la regió, a mesura que entren' }, { t: "Un sol TEOC porta l'episodi i la resta segueixen amb l'activitat ordinària" }],
+        guia: 'Organitzar la sala per grups de comunicació i assignar un TEOC per grup, amb un de relleu.', fx: 'Al joc: si encertes, la sala podrà gestionar 10 avisos per torn en lloc de 6 o 7.' },
+      { id: 'prac', role: 'teoc', title: 'Prova les dues bústies', practice: true },
+      { id: 'filtre', role: 'teoc', title: 'Fixa el filtratge', q: "Entren tres trucades pel mateix vehicle atrapat al mateix gual. Quin criteri fixeu per a tot l'episodi?",
+        opts: [{ t: 'Obrim tres actuacions, per no perdre cap informació' }, { t: 'Les vinculem a una sola actuació i tanquem les altres com a duplicades, després de comprovar-ho', good: true }, { t: 'Tanquem les trucades repetides sense mirar-les: segur que és el mateix' }],
+        guia: "Establir el filtratge d'actuacions (duplicades i no vigents).", fx: 'Al joc: si encertes, a la bústia 1 veureu una etiqueta quan un avís coincideixi amb un altre. Comproveu-lo abans de tancar-lo: pot portar informació nova.' },
+      { id: 'cp', role: 'cct', title: 'Predefineix els controls parc', q: 'Quins controls parc deixes predefinits i quan els activaràs?',
+        opts: [{ t: "Cap. Ho decidirem quan vegem com evoluciona l'episodi" }, { t: "Un control parc a cada parc de l'agrupació i de la corona 1, des del primer avís" }, { t: 'Predefineixo ' + cps + ", i els activaré en superar 10 actuacions a l'agrupació o si preveig que se superaran", good: true }],
+        guia: "Determinar la ubicació i l'àmbit dels controls parc. S'activen amb més de 10 actuacions simultànies en una agrupació o amb la previsió de superar-les.", fx: "Al joc: si encertes i també comuniques el dispositiu, el control parc serà operatiu al mateix torn que l'activis." },
+      { id: 'reserva', role: 'cct', title: 'Prepara els reforços', q: 'Quins recursos de reforç prepares?',
+        opts: [{ t: 'Faig venir ara totes les UBI de la corona 1, per tenir-les a punt' }, { t: 'Prealerto la corona 1 (' + c1t + ') i deixo identificada la corona 2', good: true }, { t: 'Cap: els parcs veïns ja tindran la seva feina' }],
+        guia: 'Preveure els recursos de reforç i reserva i prealertar els parcs veïns.', fx: 'Al joc: si encertes, els reforços arribaran un torn abans. Moure les UBI abans d\'hora deixa parcs sense cobertura.' },
+      { id: 'comunica', role: 'cct', title: 'Comunica el dispositiu', q: 'A qui comuniques el dispositiu i quan?',
+        opts: [{ t: "Als caps de guàrdia dels parcs afectats, quan s'activi cada estructura" }, { t: "Només a la sala: els parcs ja ho sabran per l'emissora" }, { t: "A tot el personal de la sala i als parcs afectats, abans que comenci l'episodi", good: true }],
+        guia: "Comunicar el dispositiu a tot el personal i als parcs afectats abans que comenci l'episodi.", fx: 'Al joc: amb els controls parc predefinits i comunicats, no perdeu cap torn en activar-los.' }
+    ];
+  }
+
+  /* ---------- què heu de fer ara ---------- */
+  function coach() {
+    const T = [], C = [], hd = E.held(S), ib = E.inbox(S).length, hp1 = hd.filter(a => a.cls === 1).length;
+    if (ib) T.push({ t: 'Prioritzeu els ' + ib + ' avisos de la bústia 1. Comenceu pels que tenen persones en risc.', u: ib > 4 });
+    if (hp1) T.push({ t: 'Envieu ja les ' + hp1 + ' P1 de la bústia 2: no poden esperar.', u: true });
+    const room = E.ZONES.filter(z => { const f = E.fieldLoad(S, z.id); return f.open < f.limit && hd.some(a => a.zone === z.id && a.cls > 1); });
+    if (room.length) T.push({ t: 'Hi ha marge al terreny a ' + room.map(z => z.name).join(', ') + ': envieu-hi els paquets P2 i P3.' });
+    if (!T.length) T.push({ t: 'Bústies al dia.', ok: true });
+    const nocp = !S.st.cp.S && !S.st.cp.N;
+    if (!E.SC.multi && nocp) { const t = E.total(S); if (t > 10) C.push({ t: "L'agrupació té " + t + ' actuacions i el llindar és 10: activeu un control parc.', u: true }); else if (t >= 7) C.push({ t: "L'agrupació s'acosta al llindar (" + t + ' de 10). Activar el control parc abans de superar-lo puntua.' }); }
+    else for (const g of Object.values(E.AGR)) { const c = E.agrCount(S, g.id); if (!S.st.cp[g.id]) { if (c > 10) C.push({ t: "L'" + g.name + ' té ' + c + ' actuacions: activeu el control parc de ' + E.PARKS[g.park].name + '.', u: true }); else if (c >= 7 && (E.SC.multi || E.anyCP(S))) C.push({ t: "L'" + g.name + " s'acosta al llindar (" + c + ' de 10).' }); } }
+    for (const z of E.ZONES) { const zc = E.zoneCount(S, z.id); if (zc > 20 && !S.st.pc[z.id]) C.push({ t: z.name + ' té ' + zc + ' actuacions (llindar 20): desplegueu-hi un punt de comandament.', u: true }); }
+    if (E.pcCount(S) >= 2 && !S.st.cca) C.push({ t: "Hi ha més d'un punt de comandament: escaleu a " + E.SC.cca + '.', u: true });
+    const bare = E.ZONES.filter(z => !S.ubis.some(x => x.zone === z.id || x.dest === z.id) && S.acts.some(a => a.zone === z.id && E.live(a) && (a.cls === 1 || a.kind === 1)));
+    if (bare.length) C.push({ t: bare.map(z => z.name).join(', ') + (bare.length > 1 ? ' tenen' : ' té') + ' persones en risc i cap UBI: envieu-hi reforç des de les corones.', u: true });
+    if (S.round >= 12 && (E.anyCP(S) || E.anyPC(S) || S.st.cca) && E.total(S) <= 10) C.push({ t: "L'episodi afluixa: retireu les estructures en ordre invers (CCA, punts de comandament, control parc)." });
+    if (!C.length) C.push({ t: 'Res urgent. Reviseu el mapa i els reforços.', ok: true });
+    const li = (x, r) => '<li class="' + (x.u ? 'u' : x.ok ? 'ok' : '') + '"><button class="cgo" data-a="tab" data-v="' + r + '">' + esc(x.t) + '</button></li>';
+    return '<div class="coach"><div><b>TEOC · ara</b><ul>' + T.map(x => li(x, 'teoc')).join('') + '</ul></div><div><b>Charlie · ara</b><ul>' + C.map(x => li(x, 'cct')).join('') + '</ul></div></div>';
+  }
+  const zn = z => E.ZONES[z].name;
+  /* Comandament màxim de cada UBI segons la plantilla per torn: tipus A (1 sergent, 2 caporals) i B (1 sergent, 1 caporal) → la primera UBI la porta el sergent; tipus C → caporal. */
+  const cmdOf = u => { const t = E.PARKS[u.park].type, n = +u.id.split('-').pop(); return (t === 'A' || t === 'B') && n === 1 ? 'Sergent' : 'Caporal'; };
+
+  /* ---------- mapa esquemàtic ---------- */
+  function map() {
+    const o = [92, 408], u = [107, -36], n = [-34, -98];
+    const P = (i, a, b) => [o[0] + u[0] * (i + a) + n[0] * b, o[1] + u[1] * (i + a) + n[1] * b];
+    const pt = p => p[0].toFixed(0) + ',' + p[1].toFixed(0);
+    const SC = E.SC, pos = i => SC.map.rev ? 5 - i : i;
+    let h = '<svg viewBox="0 0 760 440" role="img" aria-label="Mapa esquemàtic amb les sis zones de l\'escenari">';
+    if (SC.map.sea) h += '<polygon class="sea" points="' + [P(0, -0.6, 0), P(6, 0.3, 0), [760, 440], [20, 440]].map(pt).join(' ') + '"/><text class="seat" x="560" y="400">' + SC.map.sea + '</text>';
+
+    for (const g of Object.values(E.AGR)) {
+      const ps = g.zones.map(pos), lo = Math.min.apply(null, ps), hi = Math.max.apply(null, ps), a = P(lo, 0.04, 1.14), b = P(hi, 0.96, 1.14), c = E.agrCount(S, g.id), st = S.st.cp[g.id];
+      const cls = st ? 'on' : (c > 10 && (E.anyCP(S) || SC.multi) ? 'over' : '');
+      h += '<line class="agr ' + cls + '" x1="' + a[0] + '" y1="' + a[1] + '" x2="' + b[0] + '" y2="' + b[1] + '"/>';
+      const m = P(lo, 0.06, 1.2);
+      h += '<text class="agrt ' + cls + '" transform="translate(' + m[0].toFixed(0) + ',' + m[1].toFixed(0) + ') rotate(-18.6)">' + g.name.toUpperCase() + ' · ' + c + ' act.' + (st ? (st === 'on' ? ' · CP' : ' · CP EN CAMÍ') : '') + '</text>';
+    }
+    for (const z of E.ZONES) {
+      const c = E.zoneCount(S, z.id), pc = S.st.pc[z.id], t = Math.min(1, c / 22);
+      const poly = [P(pos(z.id), 0.03, 0), P(pos(z.id), 0.97, 0), P(pos(z.id), 0.97, 1), P(pos(z.id), 0.03, 1)].map(pt).join(' ');
+      h += '<polygon class="zone' + (pc ? ' haspc' : '') + (c > 20 && !pc ? ' over' : '') + '" style="--t:' + t.toFixed(2) + '" points="' + poly + '"/>';
+      const m = P(pos(z.id), 0.5, 0.5), parts = z.name.split(' – ');
+      h += '<text class="zn" x="' + m[0] + '" y="' + (m[1] - 26) + '">' + esc(parts[0]) + '</text>';
+      if (parts[1]) h += '<text class="zn" x="' + m[0] + '" y="' + (m[1] - 13) + '">' + esc(parts[1]) + '</text>';
+      h += '<text class="zc" x="' + m[0] + '" y="' + (m[1] + 16) + '">' + c + '</text>';
+      const ub = S.ubis.filter(x => x.zone === z.id);
+      ub.forEach((x, i) => { h += '<rect class="ubi ' + x.mode + '" x="' + (m[0] - ub.length * 5 + i * 10) + '" y="' + (m[1] + 24) + '" width="8" height="8" rx="1"><title>' + x.id + '</title></rect>'; });
+      if (pc) h += '<g transform="translate(' + (m[0] - 17) + ',' + (m[1] - 58) + ')"><rect class="pcb" width="34" height="15" rx="3"/><text class="pct" x="17" y="11">PC</text></g>';
+    }
+    if (SC.map.river) { const r1 = P(-0.45, 0, 0.1), r2 = P(6.3, 0, 0.1); h += '<line class="river" x1="' + r1[0] + '" y1="' + r1[1] + '" x2="' + r2[0] + '" y2="' + r2[1] + '"/><text class="seat" x="14" y="398">← ' + SC.map.river + '</text>'; }
+    for (const k of Object.keys(E.PARKS).filter(x => E.PARKS[x].zone !== null)) {
+      const p = P(pos(E.PARKS[k].zone), 0.5, -0.12);
+      h += '<circle class="park" cx="' + p[0] + '" cy="' + p[1] + '" r="5"/><text class="parkt" x="' + (p[0] + 9) + '" y="' + (p[1] + 4) + '">Parc ' + E.PARKS[k].name.split(' i ')[0] + ' (' + E.PARKS[k].type + ')</text>';
+    }
+    const ext = SC.map.ext;
+    h += '<text class="extl" x="22" y="30">CORONA 1 · UBI AL PARC</text>';
+    for (const k in ext) {
+      const home = S.ubis.filter(x => x.park === k && x.zone === null && x.dest === null).length;
+      h += '<circle class="park ext' + (home ? '' : ' empty') + '" cx="' + ext[k][0] + '" cy="' + ext[k][1] + '" r="4"/><text class="parkt" x="' + (ext[k][0] + 8) + '" y="' + (ext[k][1] + 4) + '">' + k + ' ' + home + '/' + E.PARKS[k].ubi + '</text>';
+    }
+    { const t = E.total(S), nocp = !S.st.cp.S && !S.st.cp.N; h += '<text class="agrt ' + (t > 10 && nocp && !SC.multi ? 'over' : '') + '" x="104" y="430">' + (SC.multi ? 'AGRUPACIONS ' : 'AGRUPACIÓ ') + E.AGRUP.name.toUpperCase() + ' · ' + t + ' ACTUACIONS' + (t > 10 && nocp && !SC.multi ? ' · SUPERA 10 SENSE CONTROL PARC' : '') + '</text>'; }
+    if (S.st.cca) h += '<g transform="translate(590,22)"><rect class="ccab" width="150" height="24" rx="4"/><text class="ccat" x="75" y="16">' + SC.cca.toUpperCase() + ' · SISCOM 3</text></g>';
+    return h + '</svg><p class="mapnote">Esquema no a escala. El número gran són les actuacions pendents de la zona, enviades o no; els quadrats, les UBI que hi treballen. CP: control parc actiu.</p>';
+  }
+
+  /* ---------- peces ---------- */
+  function fatBar(u) { const p = Math.min(100, u.fat * 10), c = u.fat >= 6 ? 'bad' : u.fat >= 4 ? 'warn' : 'ok'; return '<span class="fat ' + c + '" title="Fatiga ' + u.fat.toFixed(1) + ' de 10"><i style="width:' + p + '%"></i></span>'; }
+  function ubiTable(list, zones, allowHome) {
+    if (!list.length) return '<p class="empty">Cap UBI en aquest àmbit.</p>';
+    let h = '<div class="tw"><table class="ut"><thead><tr><th>Unitat</th><th>Comandament</th><th>On és</th><th>Tasca</th><th>Fatiga</th></tr></thead><tbody>';
+    for (const u of list) {
+      let where, task;
+      if (u.dest !== null) { where = '<span class="tr">En camí cap a ' + zn(u.dest) + ' · ' + u.eta + (u.eta === 1 ? ' torn' : ' torns') + '</span>'; task = '—'; }
+      else {
+        where = '<select id="z-' + u.id + '" data-a="move" data-id="' + u.id + '" aria-label="Zona de ' + u.id + '">' + zones.map(z => '<option value="' + z + '"' + (z === u.zone ? ' selected' : '') + '>' + zn(z) + '</option>').join('') + (allowHome && E.PARKS[u.park].zone === null ? '<option value="home">Retorn al parc</option>' : '') + '</select>';
+        const disc = E.zoneOwner(S, u.zone) !== 'sct';
+        task = u.lock > 0 ? '<span class="tr">Fora de servei</span>' : '<select id="m-' + u.id + '" data-a="mode" data-id="' + u.id + '" aria-label="Tasca de ' + u.id + '"><option value="int"' + (u.mode === 'int' ? ' selected' : '') + '>Intervenció</option>' + (disc ? '<option value="disc"' + (u.mode === 'disc' ? ' selected' : '') + '>Discriminador</option>' : '') + '<option value="rest"' + (u.mode === 'rest' ? ' selected' : '') + '>Descans</option></select>';
+      }
+      h += '<tr><td class="uid">' + u.id + '</td><td>' + (cmdOf(u) === 'Sergent' ? chip('Sergent', 'pc') : chip('Caporal')) + '</td><td>' + where + '</td><td>' + task + '</td><td>' + fatBar(u) + '</td></tr>';
+    }
+    return h + '</tbody></table></div>';
+  }
+  const chip = (t, c) => '<span class="chip ' + (c || '') + '">' + t + '</span>';
+
+  /* ---------- panells per rol ---------- */
+  function pTeoc() {
+    const ib = E.inbox(S), hd = E.held(S), cap = E.cap(S), left = Math.max(0, cap - S.used);
+    let h = '<div class="capbox"><div><b>Capacitat de la sala aquest torn</b><span>' + (left % 1 ? left.toFixed(1) : left) + ' gestions de ' + cap + '</span></div><div class="capbar"><i style="width:' + (100 * left / cap) + '%"></i></div><p>Prioritzar un avís costa una gestió, o mitja si la zona ja té control parc o punt de comandament. Enviar no costa res. Les actuacions enviades que la sala segueix directament li resten capacitat.</p></div>';
+    if (flash) h += '<p class="flash">' + flash + '</p>';
+    h += '<div class="two"><section><h3>Bústia 1 · Per prioritzar <i class="cnt">' + ib.length + '</i></h3>';
+    if (!ib.length) h += '<p class="empty">Cap avís pendent de prioritzar.</p>';
+    else {
+      h += '<ul class="inbox">';
+      for (const a of ib) {
+        h += '<li><div class="ah"><span class="aid">#' + a.id + '</span>' + chip(zn(a.zone)) + (S.round - a.born >= 1 ? chip('Espera ' + (S.round - a.born) * 15 + ' min', 'warn') : '') + (S.prep.filtre && a.dupOf ? chip("Filtre: coincideix amb l'avís #" + a.dupOf, 'filt') : '') + '</div><p>' + esc(a.text) + '</p><div class="ab">' +
+          [[1, 'Persones en risc'], [2, 'Risc associat'], [3, 'Servei essencial'], [4, 'Sense risc immediat']].map(x => '<button class="pb p' + x[0] + '" data-a="cls" data-id="' + a.id + '" data-v="' + x[0] + '" title="' + x[1] + '"><b>P' + x[0] + '</b> ' + x[1] + '</button>').join('') +
+          '<button class="pb px" data-a="cls" data-id="' + a.id + '" data-v="close">Duplicat o no vigent</button></div></li>';
+      }
+      h += '</ul>';
+    }
+    h += '</section><section><h3>Bústia 2 · Per enviar <i class="cnt">' + hd.length + '</i></h3><p class="hint top">Cada casella és un paquet: les actuacions prioritzades d\'una zona i una prioritat. Premeu-la per enviar-lo. El terreny només veu el que heu enviat.</p><div class="tw"><table class="sendt"><thead><tr><th>Zona</th>' + [1, 2, 3, 4].map(p => '<th class="d p' + p + '">P' + p + '</th>').join('') + '<th>Al terreny</th></tr></thead><tbody>';
+    for (const z of E.ZONES) {
+      const ow = E.zoneOwner(S, z.id), fl = E.fieldLoad(S, z.id), n = S.ubis.filter(u => u.zone === z.id).length;
+      h += '<tr><td><b>' + z.name + '</b><small>' + (ow === 'pc' ? 'Punt de comandament' : ow === 'cp' ? 'Control parc' : 'Sala') + ' · ' + n + ' UBI</small></td>';
+      for (const p of [1, 2, 3, 4]) { const c = hd.filter(a => a.zone === z.id && a.cls === p).length; h += '<td>' + (c ? '<button class="pk p' + p + '" data-a="send" data-z="' + z.id + '" data-p="' + p + '" aria-label="Envia ' + c + ' actuacions P' + p + ' de ' + z.name + '">' + c + '</button>' : '<span class="pk0">·</span>') + '</td>'; }
+      h += '<td class="fl' + (fl.open > fl.limit ? ' bad' : fl.open >= fl.limit ? ' warn' : '') + '"><b>' + fl.open + '</b> de ' + fl.limit + '</td></tr>';
+    }
+    h += '<tr class="allrow"><td><b>Totes les zones</b></td>' + [1, 2, 3, 4].map(p => { const c = hd.filter(a => a.cls === p).length; return '<td>' + (c ? '<button class="pk all p' + p + '" data-a="send" data-z="all" data-p="' + p + '" aria-label="Envia totes les P' + p + '">' + c + '</button>' : '<span class="pk0">·</span>') + '</td>'; }).join('') + '<td></td></tr></tbody></table></div><p class="hint">«Al terreny» compta les actuacions enviades i encara obertes, i quantes en pot assumir la zona amb les UBI que hi té (4 per UBI). Si se supera, les unitats perden eficàcia.</p></section></div>';
+    return h;
+  }
+  function pCct() {
+    let h = '<h3>Estructures</h3><p class="hint top">Quan activeu un control parc o un punt de comandament, el terreny s\'organitza sol: reparteix les UBI del seu àmbit, fa els relleus i activa la logística. Les zones sense estructura les gestioneu vosaltres des de la sala.</p><div class="tw"><table class="st"><thead><tr><th>Àmbit</th><th>Actuacions</th><th>Estat</th><th></th></tr></thead><tbody>';
+    if (!E.SC.multi) { const t = E.total(S), nocp = !S.st.cp.S && !S.st.cp.N; h += '<tr class="agrrow top"><td><b>Agrupació ' + E.AGRUP.name + '</b><small>Grup ' + E.AGRUP.grup + ' · parcs de ' + Object.values(E.PARKS).filter(p => p.agr === E.AGRUP.name).map(p => p.name).join(', ') + '</small></td><td class="num' + (t > 10 && nocp ? ' bad' : '') + '">' + t + '<small>llindar 10</small></td><td>' + (nocp ? chip('Sense control parc', t > 10 ? 'bad' : 'sct') : '') + '</td><td></td></tr>'; }
+    for (const g of Object.values(E.AGR)) {
+      const c = E.agrCount(S, g.id), st = S.st.cp[g.id];
+      h += '<tr class="agrrow"><td><b>' + g.name.charAt(0).toUpperCase() + g.name.slice(1) + '</b><small>Control parc a ' + E.PARKS[g.park].name + '</small></td><td class="num' + (c > 10 && !st ? ' bad' : '') + '">' + c + '<small>' + (E.SC.multi ? 'llindar 10' : 'àmbit') + '</small></td><td>' + (st === 'on' ? chip('Control parc actiu', 'cp') : st ? chip('Operatiu el torn següent', 'warn') : chip('Gestió de sala', 'sct')) + '</td><td><button class="btn" data-a="cp" data-g="' + g.id + '">' + (st ? 'Retira el control parc' : 'Activa el control parc') + '</button></td></tr>';
+      for (const z of g.zones) {
+        const zc = E.zoneCount(S, z), pc = S.st.pc[z];
+        h += '<tr><td class="sub">' + zn(z) + '</td><td class="num' + (zc > 20 && !pc ? ' bad' : '') + '">' + zc + '<small>llindar 20</small></td><td>' + (pc === 'on' ? chip('Punt de comandament', 'pc') : pc ? chip('Operatiu el torn següent', 'warn') : '') + '</td><td><button class="btn ghost" data-a="pc" data-z="' + z + '">' + (pc ? 'Retira el punt de comandament' : 'Desplega un punt de comandament') + '</button></td></tr>';
+      }
+    }
+    h += '<tr class="agrrow"><td><b>' + E.SC.cca + '</b><small>Agrupa controls parc i punts de comandament</small></td><td class="num' + (E.pcCount(S) >= 2 && !S.st.cca ? ' bad' : '') + '">' + E.pcCount(S) + '<small>punts de comandament</small></td><td>' + (S.st.cca ? chip('CCA actiu · SISCOM 3', 'cca') : '') + '</td><td><button class="btn" data-a="cca">' + (S.st.cca ? 'Retira el CCA' : 'Escala a CCA') + '</button></td></tr></tbody></table></div>';
+    const zsel = (id) => '<select id="' + id + '" data-a="dest" aria-label="Destinació">' + E.ZONES.map(z => '<option value="' + z.id + '"' + (String(dest[id]) === String(z.id) ? ' selected' : '') + '>' + z.name + '</option>').join('') + '</select>';
+    const CN = { 1: 'Corona 1 · parcs propers de la regió', 2: 'Corona 2 · següent corona', 3: 'Resta de Catalunya' };
+    h += '<h3>Reforç per corones d\'activació</h3><p class="hint top">Podeu enviar UBI de qualsevol parc de Catalunya. «Activa la corona» envia una UBI de cada parc que en conservi una altra de cobertura.</p>';
+    for (const c of [1, 2, 3]) {
+      const ks = Object.keys(E.PARKS).filter(k => E.PARKS[k].corona === c).sort((a, b) => E.PARKS[a].delay - E.PARKS[b].delay);
+      const avail = ks.filter(k => S.ubis.filter(x => x.park === k && x.zone === null && x.dest === null).length >= 2).length;
+      h += '<div class="corona"><div class="chead"><b>' + CN[c] + '</b><small>' + ks.length + ' parcs · ' + avail + ' poden cedir una UBI sense quedar descoberts</small>' + (c === 3 ? '<button class="btn ghost" data-a="rest">' + (showRest ? 'Amaga' : 'Mostra') + ' els parcs</button>' : '<span class="send">' + zsel('sg-' + c) + '<button class="btn" data-a="sendg" data-c="' + c + '">Activa la corona</button></span>') + '</div>';
+      if (c < 3 || showRest) {
+        h += '<div class="tw"><table class="st"><thead><tr><th>Parc</th><th>UBI al parc</th><th>Arribada</th><th>Destinació</th></tr></thead><tbody>';
+        for (const k of ks) {
+          const p = E.PARKS[k], home = S.ubis.filter(x => x.park === k && x.zone === null && x.dest === null), d = Math.max(1, p.delay - (S.prep.reserva ? 1 : 0));
+          h += '<tr><td><b>' + p.name + '</b><small>' + p.region + ' · agrupació ' + p.agr + ' · tipus ' + p.type + '</small></td><td class="num' + (home.length ? '' : ' bad') + '">' + home.length + ' de ' + p.ubi + (home.length ? '' : '<small>sense cobertura</small>') + '</td><td>' + d + (d === 1 ? ' torn' : ' torns') + '</td><td>' + (home.length ? '<span class="send">' + zsel('s-' + k) + '<button class="btn ghost" data-a="send" data-k="' + k + '">Envia una UBI</button></span>' : '') + '</td></tr>';
+        }
+        h += '</tbody></table></div>';
+      }
+      h += '</div>';
+    }
+    const mine = S.ubis.filter(u => u.dest !== null || (u.zone !== null && u.zone >= 0 && E.zoneOwner(S, u.zone) === 'sct'));
+    h += '<h3>UBI gestionades directament per la sala i unitats en camí</h3>' + ubiTable(mine, E.ZONES.map(z => z.id), true);
+    return h;
+  }
+  function pCp() {
+    const act = Object.values(E.AGR).filter(g => S.st.cp[g.id] === 'on');
+    if (!act.length) return '<p class="empty">Encara no hi ha cap control parc operatiu. L\'activa el cap de coordinació quan l\'agrupació supera les 10 actuacions, o abans si ho preveu.</p>';
+    let h = '';
+    for (const g of act) {
+      const us = S.ubis.filter(u => u.zone !== null && u.zone >= 0 && g.zones.includes(u.zone) && E.zoneOwner(S, u.zone) === 'cp');
+      h += '<section class="blk"><h3>Control parc de ' + E.PARKS[g.park].name + ' · ' + g.name + '</h3><div class="areas">' + g.zones.map((z, i) => { const o = S.acts.filter(a => a.zone === z && a.state === 'open'); return '<div class="area' + (S.st.pc[z] === 'on' ? ' ispc' : '') + '"><b>Àrea ' + 'ABCD'[i] + ' · ' + zn(z) + '</b>' + (S.st.pc[z] === 'on' ? '<span>La gestiona el punt de comandament</span>' : '<span>' + o.length + ' obertes · ' + [1, 2, 3, 4].map(p => '<em class="d p' + p + '">P' + p + ' ' + o.filter(a => a.cls === p).length + '</em>').join(' ') + '</span>') + '</div>'; }).join('') + '</div>';
+      h += S.logi[g.id] ? '<p class="okline">Logística activa: avituallament, combustible, material de recanvi i unitat Limes.</p>' : '<button class="btn" data-a="logi" data-g="' + g.id + '">Activa la logística i l\'avituallament</button>';
+      h += ubiTable(us, g.zones, true) + '<p class="hint">Aquí només hi surten les actuacions que la sala ha enviat. Les UBI les trien per prioritat i proximitat. Una UBI discriminadora tanca duplicats, resol actuacions P4 amb indicacions i corregeix prioritats mal assignades.</p></section>';
+    }
+    return h;
+  }
+  function pPc() {
+    const zs = Object.keys(S.st.pc).filter(z => S.st.pc[z] === 'on').map(Number);
+    if (!zs.length) return '<p class="empty">Encara no hi ha cap punt de comandament operatiu. Es desplega quan un àmbit concret supera les 20 actuacions, o abans si la gravetat ho justifica.</p>';
+    let h = '';
+    for (const z of zs) {
+      const o = S.acts.filter(a => a.zone === z && a.state === 'open'), g = E.AGR[E.ZONES[z].agr];
+      h += '<section class="blk"><h3>Punt de comandament · ' + zn(z) + '</h3><p class="dep">Depèn ' + (S.st.cca ? 'del ' + E.SC.cca : 'de la sala de control territorial') + '. Punt de referència per a autoritats i agències.</p><div class="areas"><div class="area"><b>Bombolla</b><span>' + o.length + ' obertes · ' + [1, 2, 3, 4].map(p => '<em class="d p' + p + '">P' + p + ' ' + o.filter(a => a.cls === p).length + '</em>').join(' ') + '</span></div></div>';
+      const p1 = o.filter(a => a.kind === 1 && a.cls === 1);
+      if (p1.length) h += '<ul class="p1l">' + p1.map(a => '<li><b>#' + a.id + '</b> ' + esc(a.text) + (a.first === null ? ' ' + chip('Sense unitat', 'bad') : ' ' + chip('Unitat treballant-hi', 'ok')) + '</li>').join('') + '</ul>';
+      h += ubiTable(S.ubis.filter(u => u.zone === z), g.zones, false) + '</section>';
+    }
+    return h;
+  }
+
+  /* ---------- cartera dels controls parc i punts de comandament ---------- */
+  function cartera() {
+    const rows = [];
+    for (const g of Object.values(E.AGR)) {
+      const zs = g.zones.filter(z => S.st.pc[z] !== 'on'), st = S.st.cp[g.id];
+      rows.push({ name: st === 'on' ? 'Control parc ' + E.PARKS[g.park].name : 'Sala · ' + g.name, sub: st === 'on' ? g.name : 'sense control parc', kind: st === 'on' ? 'cp' : 'sct', zs, lim: 10 });
+    }
+    for (const z in S.st.pc) if (S.st.pc[z] === 'on') rows.push({ name: 'Punt de comandament', sub: E.ZONES[z].name, kind: 'pc', zs: [+z], lim: 20 });
+    const data = rows.map(r => {
+      const op = S.acts.filter(a => r.zs.includes(a.zone) && a.state === 'open'), hd = S.acts.filter(a => r.zs.includes(a.zone) && a.state === 'held');
+      return Object.assign(r, { p: [1, 2, 3, 4].map(p => op.filter(a => a.cls === p).length), held: hd.length, heldP1: hd.filter(a => a.cls === 1).length, ubi: S.ubis.filter(u => r.zs.includes(u.zone)).length, here: S.ubis.filter(u => r.zs.includes(u.zone)), coming: S.ubis.filter(u => u.dest !== null && r.zs.includes(u.dest)).length });
+    });
+    const max = Math.max(22, ...data.map(d => d.p.reduce((a, b) => a + b, 0) + d.held));
+    const pct = n => (100 * n / max).toFixed(2) + '%';
+    const res = (d, tot) => {
+      const sg = d.here.filter(x => cmdOf(x) === 'Sergent').length, cp = d.here.length - sg, rest = d.here.filter(x => x.mode === 'rest' || x.lock > 0).length;
+      return '<div class="res2' + (d.ubi === 0 && tot ? ' bad' : '') + '"><b>' + d.ubi + ' UBI</b>' + (d.coming ? ' · +' + d.coming + ' en camí' : '') + (rest ? ' · ' + rest + ' en descans' : '') + (d.ubi ? '<br>Màx.: <b>' + (sg ? 'Sergent' : 'Caporal') + '</b> (' + sg + ' sgt · ' + cp + ' cap)' : '') + '</div>';
+    };
+    let h = '<div class="card cart"><div class="carth"><h3>Cartera al terreny</h3><span class="lg">' + [1, 2, 3, 4].map(p => '<i class="sw p' + p + '"></i>P' + p).join(' ') + ' <i class="sw held"></i>Retingudes a sala</span></div>';
+    for (const d of data) {
+      const tot = d.p.reduce((a, b) => a + b, 0);
+      h += '<div class="crow ' + d.kind + '"><div class="cn"><b>' + esc(d.name) + '</b><small>' + esc(d.sub) + '</small>' + res(d, tot) + '</div><div class="cbar" role="img" aria-label="' + esc(d.name) + ': ' + d.p.map((n, i) => 'P' + (i + 1) + ' ' + n).join(', ') + ', ' + d.held + ' retingudes">' +
+        d.p.map((n, i) => n ? '<span class="seg p' + (i + 1) + '" style="width:' + pct(n) + '">' + (n * 100 / max >= 4 ? n : '') + '</span>' : '').join('') +
+        (d.held ? '<span class="seg held" style="width:' + pct(d.held) + '">' + (d.held * 100 / max >= 4 ? d.held : '') + '</span>' : '') +
+        (d.kind !== 'sct' || d.lim === 10 ? '<span class="lim" style="left:' + pct(d.lim) + '" title="Llindar ' + d.lim + '"></span>' : '') + '</div>' +
+        '<div class="ct"><b>' + tot + '</b><small>enviades</small>' + (d.heldP1 ? '<em>' + d.heldP1 + ' P1 retinguda' + (d.heldP1 > 1 ? 'es' : '') + '</em>' : '') + '</div></div>';
+    }
+    return h + '<p class="mapnote">La ratlla vertical marca el llindar: 10 per al control parc, 20 per al punt de comandament.</p></div>';
+  }
+
+  /* ---------- pantalles ---------- */
+  function vPrep() {
+    ensure();
+    const SC = E.SC, loc = Object.values(E.PARKS).filter(p => p.zone !== null), M = missions(), st = S.pstep;
+    let h = '<div class="prep"><div class="brief"><p class="eyebrow">' + SC.region + ' · Fase 1 · Preparació · 16:30 h</p><h1>' + SC.title + '</h1><p class="lead">' + SC.lead + ' Sou la sala de la ' + SC.regionName + '.</p>' +
+      '<div class="how"><b>Com es juga</b><ol><li><span>1</span><div><b>Prepareu el dispositiu.</b> Sis missions curtes: cinc decisions de la guia i una prova de les bústies.</div></li><li><span>2</span><div><b>Gestioneu l\'episodi.</b> Cada torn són 15 minuts, de 17:00 a 21:00. Un panell us dirà què toca fer a cada moment.</div></li><li><span>3</span><div><b>Llegiu l\'informe.</b> Puntuació sobre 100 i els moments clau, bons i dolents.</div></li></ol></div>' +
+      '<div class="roles"><div><b>TEOC</b><span>Rep els avisos (bústia 1), els prioritza de P1 a P4 i decideix quins paquets envia al terreny i quan (bústia 2).</span></div><div><b>Charlie · Cap de coordinació territorial</b><span>Mira els comptadors i decideix quan s\'activen el control parc, el punt de comandament i el CCA, i d\'on surten els reforços.</span></div></div>' +
+      '<p class="hint">Recursos de sortida: ' + loc.map(p => p.name + ' ' + p.ubi + ' UBI').join(' · ') + '. Podeu demanar reforç de qualsevol parc de Catalunya.</p></div><div class="prepform">';
+    h += '<label class="scsel" for="sc">Regió i escenari<select id="sc" data-a="sc">' + Object.values(E.SCEN).map(x => '<option value="' + x.id + '"' + (x.id === SC.id ? ' selected' : '') + '>' + x.region + ' · ' + x.title + '</option>').join('') + E.PLANNED.map(x => '<option disabled>' + x[0] + ' · ' + x[1] + ' (en preparació)</option>').join('') + '</select></label>';
+    h += '<ol class="mstep">' + M.map((m, i) => { const done = i < st, ok = m.practice ? true : S.prep[m.id]; return '<li class="' + (i === st ? 'cur' : done ? (ok ? 'ok' : 'bad') : '') + '" title="' + esc(m.title) + '"><i>' + (done ? (ok ? '✓' : '✕') : i + 1) + '</i><span>' + RSHORT[m.role] + '</span></li>'; }).join('') + '</ol>';
+    if (st < M.length) {
+      const m = M[st];
+      h += '<div class="mcard"><p class="eyebrow">Missió ' + (st + 1) + ' de ' + M.length + ' · per a ' + ROLE[m.role] + '</p><h2>' + m.title + '</h2>';
+      if (m.practice) {
+        const all = PRAC.every((x, i) => S.prac[i] !== undefined), p1 = PRAC.findIndex(x => x.a === '1');
+        h += '<p>La <b>bústia 1</b> és on entren els avisos: els heu de prioritzar. La <b>bústia 2</b> guarda els que ja heu prioritzat fins que decidiu enviar-los al terreny. Classifiqueu aquests quatre avisos d\'exemple.</p><ul class="inbox prac">';
+        PRAC.forEach((x, i) => {
+          const a = S.prac[i];
+          h += '<li><p>' + esc(x.t) + '</p>' + (a === undefined ? '<div class="ab">' + [[1, 'Persones en risc'], [2, 'Risc associat'], [3, 'Servei essencial'], [4, 'Sense risc immediat']].map(y => '<button class="pb p' + y[0] + '" data-a="prac" data-i="' + i + '" data-v="' + y[0] + '"><b>P' + y[0] + '</b> ' + y[1] + '</button>').join('') + '<button class="pb px" data-a="prac" data-i="' + i + '" data-v="close">Duplicat o no vigent</button></div>' : '<p class="fbk ' + (a === x.a ? 'ok' : 'bad') + '">' + (a === x.a ? '✓ Correcte. ' : '✕ Has triat ' + PLAB[a] + '. ') + x.why + '</p>') + '</li>';
+        });
+        h += '</ul>';
+        if (all) h += S.pracSent ? '<p class="fbk ok">✓ Enviat. El terreny ja té la P1; la resta queda retinguda a la bústia 2 fins que hi hagi marge. Durant l\'episodi ho fareu per zones i prioritats.</p>' : '<div class="pracsend"><span>Bústia 2: la P1 està prioritzada però encara no l\'ha vista ningú al terreny.</span><button class="pk all p1" data-a="pracsend">Envia el paquet P1</button></div>';
+        if (all && S.pracSent) h += '<div class="mnext"><button class="btn big" data-a="pnext">Següent missió</button></div>';
+      } else {
+        const a = S.pq[m.id];
+        h += '<p class="mq">' + m.q + '</p>' + m.opts.map((o, i) => '<button class="opt' + (a === undefined ? '' : o.good ? ' good' : i === a ? ' bad' : ' dim') + '" data-a="pq" data-v="' + i + '"' + (a === undefined ? '' : ' disabled') + '>' + esc(o.t) + '</button>').join('');
+        if (a !== undefined) h += '<p class="eyebrow ' + (m.opts[a].good ? 'ok' : 'bad') + '" style="margin-top:14px">' + (m.opts[a].good ? 'Alineat amb la guia' : 'No és el que indica la guia') + '</p><blockquote>' + esc(m.guia) + '<cite>GUI.CORA.001 · Fase de preparació</cite></blockquote><p class="hint">' + m.fx + '</p><div class="mnext"><button class="btn big" data-a="pnext">' + (st + 1 < M.length ? 'Següent missió' : 'Veure el dispositiu') + '</button></div>';
+      }
+      h += '</div>';
+    } else {
+      const ok = M.filter(m => !m.practice && S.prep[m.id]).length;
+      h += '<div class="mcard"><p class="eyebrow">Dispositiu preparat</p><h2>' + ok + ' de 5 decisions alineades amb la guia</h2><ul class="keys">' + M.filter(m => !m.practice).map(m => '<li class="' + (S.prep[m.id] ? 'ok' : 'bad') + '"><span>' + RSHORT[m.role] + ' · ' + m.title + '</span></li>').join('') + '</ul>' +
+        (ok < 5 ? '<p class="hint">Les decisions no alineades us restaran punts i faran l\'episodi més difícil. Podeu tornar a respondre-les.</p>' : '') +
+        '<div class="startrow"><label for="seed">Codi d\'escenari <input id="seed" type="number" min="1" max="99999" value="' + S.seed + '" data-a="seed"></label><span class="endbtn" style="margin:0">' + (ok < 5 ? '<button class="btn ghost" data-a="preset">Torna a començar la preparació</button>' : '') + '<button class="btn big" data-a="start">Comença l\'episodi</button></span></div><p class="hint">Amb el mateix codi entren els mateixos avisos: serveix per comparar equips de la mateixa regió.</p></div>';
+    }
+    return h + '</div></div>';
+  }
+  function vPlay() {
+    if (!ROLE[tab]) tab = 'teoc';
+    const tabs = [['teoc', 'TEOC', E.inbox(S).length], ['cct', 'Charlie', 0]];
+    const body = { teoc: pTeoc, cct: pCct }[tab]();
+    return '<div class="play"><div class="left"><div class="card mapc">' + map() + '</div>' + cartera() + '<div class="card logc"><h3>Diari de l\'episodi</h3><ul class="log">' + S.log.slice(0, 40).map(l => '<li class="' + l.lvl + '"><time>' + E.clock(Math.min(l.r, E.ROUNDS)) + '</time><span>' + esc(l.msg) + '</span></li>').join('') + '</ul></div></div>' +
+      '<div class="right card">' + (guided() ? coach() : '') + '<div class="tabs" role="tablist">' + tabs.map(t => '<button role="tab" aria-selected="' + (tab === t[0]) + '" class="tab' + (tab === t[0] ? ' on' : '') + '" data-a="tab" data-v="' + t[0] + '">' + t[1] + (t[2] ? '<i>' + t[2] + '</i>' : '') + '</button>').join('') + '</div><div class="panel" id="panel">' + body + '</div>' +
+      '<div class="foot"><span>' + (E.canClose(S) ? 'Totes les actuacions estan resoltes.' : 'Quan TEOC i Charlie hagin acabat, avanceu el rellotge.') + '</span>' + (E.canClose(S) ? '<button class="btn ghost" data-a="close">Tanca l\'episodi</button>' : '') + '<button class="btn big" data-a="adv">Avança 15 minuts</button></div></div></div>';
+  }
+  function vEnd() {
+    const sc = S.score, cats = [['persones', 'Persones en risc', 30], ['estructures', 'Estructures i desescalat', 25], ['prioritats', 'Prioritats i filtratge', 15], ['sala', 'Operativitat de la sala i del terreny', 15], ['seguretat', 'Preparació, seguretat i logística', 15]];
+    return '<div class="end"><div class="total"><p class="eyebrow">Informe de l\'episodi · ' + E.SC.region + ' ' + E.SC.short + ' · codi ' + S.seed + (guided() ? ' · partida guiada' : '') + '</p><div class="big">' + sc.total + '<small>de 100</small></div><div class="bars">' + cats.map(c => '<div class="bar"><span>' + c[1] + ' <em>pes ' + c[2] + ' %</em></span><div><i style="width:' + sc[c[0]] + '%" class="' + (sc[c[0]] >= 75 ? 'ok' : sc[c[0]] >= 45 ? 'warn' : 'bad') + '"></i></div><b>' + sc[c[0]] + '</b></div>').join('') + '</div><div class="endbtn"><button class="btn" data-a="copy">Copia el resum</button><button class="btn ghost" data-a="new">Nova partida</button></div></div>' +
+      '<div class="card"><h3>Moments clau</h3><ul class="keys">' + (S.keys.length ? S.keys.map(k => '<li class="' + (k.ok ? 'ok' : 'bad') + '"><time>' + E.clock(Math.min(k.r, E.ROUNDS)) + '</time><span>' + esc(k.msg) + '</span></li>').join('') : '<li>Cap decisió registrada.</li>') + '</ul></div>' +
+      '<div class="card"><h3>Avisos mal classificats (' + S.m.errs.length + ')</h3>' + (S.m.errs.length ? '<ul class="errs">' + S.m.errs.slice(0, 15).map(e => '<li><b>#' + e.id + '</b> ' + esc(e.text) + '<small>' + e.did + ' · era ' + e.was + '</small></li>').join('') + '</ul>' + (S.m.errs.length > 15 ? '<p class="hint">Es mostren els 15 primers.</p>' : '') : '<p class="empty">Cap error de classificació.</p>') + '</div></div>';
+  }
+  function vModal() {
+    if (S && S.event) {
+      const e = E.EVENTS.find(x => x.id === S.event);
+      const mine = !NET.role || NET.role === e.role;
+      return '<div class="ov"><div class="dlg" role="dialog" aria-modal="true"><p class="eyebrow">Decisió per a: ' + ROLE[e.role] + '</p><h2>' + e.title + '</h2><p>' + esc(S.evText) + '</p>' + (mine ? e.opts.map((o, i) => '<button class="opt" data-a="ans" data-v="' + i + '">' + esc(o.t) + '</button>').join('') : '<p class="wait">Ho decideix ' + ROLE[e.role] + '. Espereu la seva resposta.</p>') + '</div></div>';
+    }
+    if (S && S.evResult && seenRes !== S.evDone.length) {
+      const r = S.evResult;
+      return '<div class="ov"><div class="dlg" role="dialog" aria-modal="true"><p class="eyebrow ' + (r.good ? 'ok' : 'bad') + '">' + (r.good ? 'Alineat amb la guia' : 'No és el que indica la guia') + '</p><h2>' + r.title + '</h2><blockquote>' + esc(r.guia) + '<cite>GUI.CORA.001 · Simultaneïtat d\'actuacions</cite></blockquote><button class="btn big" data-a="evok">Continua</button></div></div>';
+    }
+    if (NET.mode !== 'local' && !NET.role) return lobby();
+    if (modal === 'guia') return '<div class="ov"><div class="dlg wide" role="dialog" aria-modal="true"><h2>Guia ràpida</h2><div class="tw"><table class="st"><thead><tr><th></th><th>Control parc</th><th>Punt de comandament</th><th>CCA</th></tr></thead><tbody><tr><td><b>Quan s\'activa</b></td><td>Més de 10 actuacions simultànies en una agrupació, o previsió de superar-les</td><td>Més de 20 actuacions en un àmbit concret, o abans si la gravetat ho justifica</td><td>Diversos punts de comandament en una zona, o SISCOM 3 o 4</td></tr><tr><td><b>On es desplega</b></td><td>En un parc</td><td>Al municipi o barri, preferentment a partir del control parc</td><td>A partir del control parc o punt de comandament de la zona</td></tr><tr><td><b>De qui depèn</b></td><td>SCT</td><td>SCT (SISCOM 1 i 2), CCA (SISCOM 3 i 4)</td><td>SCT (SISCOM 3), SCB (SISCOM 4)</td></tr></tbody></table></div><h3>Prioritats operatives</h3><ol class="prio"><li><b class="d p1">P1</b> Salvament de persones en situació de risc</li><li><b class="d p2">P2</b> Actuacions amb riscos associats que puguin posar en perill les persones</li><li><b class="d p3">P3</b> Infraestructures i serveis essencials</li><li><b class="d p4">P4</b> Altres actuacions sense risc directe o immediat</li></ol><p>El desescalat es fa en ordre invers: CCA, punts de comandament, control parc.</p><button class="btn" data-a="closem">Tanca</button></div></div>';
+    if (modal === 'intro') return '<div class="ov"><div class="dlg" role="dialog" aria-modal="true"><p class="eyebrow">17:00 · Comença l\'episodi</p><h2>Com funciona cada torn</h2><ol class="introl"><li><b>TEOC:</b> buideu la bústia 1 classificant cada avís. Després, a la bústia 2, envieu al terreny els paquets que toquin. Les P1, sempre de seguida.</li><li><b>Charlie:</b> mireu el comptador de l\'agrupació al mapa. Quan s\'acosti a 10 actuacions, activeu el control parc. Si una zona s\'apropa a 20 o hi ha persones en risc concentrades, desplegueu-hi un punt de comandament.</li><li>Quan tots dos hàgiu acabat, premeu <b>Avança 15 minuts</b>.</li></ol><p class="hint">El requadre de dalt a la dreta us diu en tot moment què toca fer. Es pot amagar amb el botó «Guiat».</p><button class="btn big" data-a="closem">Comencem</button></div></div>';
+    if (modal === 'reset') return '<div class="ov"><div class="dlg" role="dialog" aria-modal="true"><h2>Voleu abandonar aquesta partida?</h2><p>Es perdrà l\'episodi en curs.</p><div class="endbtn"><button class="btn" data-a="new">Sí, nova partida</button><button class="btn ghost" data-a="closem">Continua jugant</button></div></div></div>';
+    return '';
+  }
+  function head() {
+    const ph = [['Preparació', S.round >= 1], ['Control parc', E.anyCP(S)], ['Punt de comandament', E.anyPC(S)], ['CCA', !!S.st.cca], ['Recuperació', S.evDone.includes('cct_recup') || S.phase === 'end']];
+    return '<div class="brand"><b>SIMULTANEÏTAT</b><span>Episodi ' + E.SC.short + ' · ' + E.SC.region + '</span></div>' + (NET.mode === 'local' ? '<ol class="steps">' + ph.map((p, i) => '<li class="' + (p[1] ? 'on' : '') + '"><i>' + (i + 1) + '</i>' + p[0] + '</li>').join('') + '</ol>' : '<span class="flex1"></span>') + '<div class="clock">' + (S.phase === 'prep' ? '<b>16:30</b><span>Preparació</span>' : S.phase === 'end' ? '<b>21:00</b><span>Episodi tancat</span>' : '<b>' + E.clock(S.round) + '</b><span>Torn ' + S.round + ' de ' + E.ROUNDS + '</span>') + '</div>' + netChip() + '<div class="hbtn"><button class="btn ghost' + (guided() ? ' on' : '') + '" data-a="guided" aria-pressed="' + guided() + '">Guiat: ' + (guided() ? 'sí' : 'no') + '</button><button class="btn ghost" data-a="guia">Guia ràpida</button>' + (S.phase === 'play' ? '<button class="btn ghost" data-a="reset">Reinicia</button>' : '') + '</div>';
+  }
+  function render() {
+    if (lastPhase === 'prep' && S.phase === 'play' && guided()) modal = 'intro';
+    lastPhase = S.phase;
+    if (NET.side) { $('#head').innerHTML = ''; $('#main').innerHTML = sidePanel(); $('#modal').innerHTML = ''; return; }
+    const pn = $('#panel'), sc = pn ? pn.scrollTop : 0;
+    $('#head').innerHTML = head();
+    $('#main').innerHTML = S.phase === 'prep' ? vPrep() : S.phase === 'play' ? vPlay() : vEnd();
+    $('#modal').innerHTML = vModal();
+    const p2 = $('#panel'); if (p2) p2.scrollTop = sc;
+  }
+
+  function act(a, d, el, val) {
+    flash = '';
+    if (NET.mode !== 'local' && !UI_ONLY.has(a) && !NET.host) { netSend(a, d, val); return; }
+    if (a === 'prep') S.prep[d.id] = !!val;
+    else if (a === 'seed') { const v = parseInt(val, 10); if (v > 0) { const o = S; S = E.newGame(v, o.sc); for (const k of ['prep', 'pq', 'pstep', 'prac', 'pracSent', 'keys', 'guided']) S[k] = o[k]; } }
+    else if (a === 'sc') { const g = S.guided; S = E.newGame(S.seed, val); S.guided = g; }
+    else if (a === 'preset') { const g = S.guided; S = E.newGame(S.seed, S.sc); S.guided = g; }
+    else if (a === 'pq') { ensure(); const m = missions()[S.pstep]; if (S.pq[m.id] === undefined) { const o = m.opts[+d.v]; S.pq[m.id] = +d.v; S.prep[m.id] = !!o.good; S.keys.push({ r: 0, msg: 'Preparació · ' + m.title + (o.good ? ': alineat amb la guia.' : ': «' + o.t + '».'), ok: !!o.good }); } }
+    else if (a === 'pnext') { ensure(); S.pstep++; }
+    else if (a === 'prac') { ensure(); S.prac[d.i] = d.v; }
+    else if (a === 'pracsend') S.pracSent = true;
+    else if (a === 'guided') S.guided = !guided();
+    else if (a === 'start') { E.start(S); tab = NET.role || 'teoc'; }
+    else if (a === 'tab') tab = d.v;
+    else if (a === 'cls') { const r = E.classify(S, +d.id, d.v === 'close' ? 'close' : +d.v); if (r === 'sat') flash = 'La sala no té més capacitat aquest torn. La resta d\'avisos queden en espera.'; }
+    else if (a === 'cp') E.setCP(S, d.g, !S.st.cp[d.g]);
+    else if (a === 'pc') E.setPC(S, +d.z, !S.st.pc[d.z]);
+    else if (a === 'cca') { if (E.setCCA(S, !S.st.cca) === 'cal') { tab = 'cct'; } }
+    else if (a === 'logi') E.setLogi(S, d.g);
+    else if (a === 'send' && d.p) E.send(S, d.z === 'all' ? null : +d.z, +d.p);
+    else if (a === 'dest') { dest[el.id] = val; return; }
+    else if (a === 'rest') showRest = !showRest;
+    else if (a === 'sendg') E.sendCorona(S, +d.c, +val);
+    else if (a === 'send') { const u = S.ubis.find(x => x.park === d.k && x.zone === null && x.dest === null); if (u) E.moveUbi(S, u.id, +val); }
+    else if (a === 'move') E.moveUbi(S, d.id, val === 'home' ? null : +val);
+    else if (a === 'mode') E.setMode(S, d.id, val);
+    else if (a === 'adv') { E.advance(S); if (S.event && !NET.role) tab = E.EVENTS.find(x => x.id === S.event).role; }
+    else if (a === 'close') E.finish(S);
+    else if (a === 'ans') E.answer(S, +d.v);
+    else if (a === 'evok') seenRes = S.evDone.length;
+    else if (a === 'guia') modal = 'guia';
+    else if (a === 'reset') modal = 'reset';
+    else if (a === 'closem') modal = null;
+    else if (a === 'new') { const g = S.guided; S = E.newGame(S.seed, S.sc); S.guided = g; modal = null; tab = NET.role || 'teoc'; }
+    else if (a === 'copy') {
+      const sc = S.score, t = 'Simultaneïtat · ' + E.SC.region + ' · ' + E.SC.title + ' (codi ' + S.seed + ')\nPuntuació: ' + sc.total + '/100\nPersones en risc: ' + sc.persones + '\nEstructures i desescalat: ' + sc.estructures + '\nPrioritats i filtratge: ' + sc.prioritats + '\nOperativitat de la sala i del terreny: ' + sc.sala + '\nPreparació, seguretat i logística: ' + sc.seguretat;
+      try { navigator.clipboard.writeText(t).then(() => { el.textContent = 'Copiat'; }, () => { el.textContent = 'No s\'ha pogut copiar'; }); } catch (e) { el.textContent = 'No s\'ha pogut copiar'; }
+      return;
+    }
+    if (NET.host && !UI_ONLY.has(a)) netBroadcast();
+    render();
+  }
+
+  /* ---------- partida compartida (Teams Live Share, o dues finestres amb ?sim=1) ---------- */
+  const UI_ONLY = new Set(['tab', 'rest', 'dest', 'guia', 'reset', 'closem', 'evok', 'copy', 'role', 'takehost', 'stage']);
+  let lastPhase = null, seenRes = -1;
+  const NET = { mode: 'local', host: false, role: null, me: Math.random().toString(36).slice(2, 10), T: null, n: 0, pending: [], done: new Set(), acks: {}, seq: 0, hostId: null, status: '', side: false };
+  function netChip() {
+    if (NET.mode === 'local') return '';
+    return '<div class="netchip' + (NET.status ? ' bad' : '') + '" title="' + esc(NET.status || 'Partida compartida') + '"><b>Partida compartida</b><span>' + (NET.role ? 'Sou ' + RSHORT[NET.role] : 'Sense rol') + (NET.host ? ' · porteu el rellotge' : '') + (NET.pending.length ? ' · enviant…' : '') + '</span>' + (!NET.host && NET.role ? '<button class="linkb" data-a="takehost">Pren el control</button>' : '') + '</div>';
+  }
+  function lobby() {
+    const joined = !!NET.hostId;
+    return '<div class="ov"><div class="dlg" role="dialog" aria-modal="true"><p class="eyebrow">Partida compartida' + (NET.mode === 'sim' ? ' · prova en dues finestres' : ' a la reunió') + '</p><h2>Quin rol porteu?</h2><p>' + (joined ? 'Ja hi ha una partida en marxa. Tria el teu rol per entrar-hi.' : 'Encara no hi ha cap partida. El primer que triï el rol la crea i porta el rellotge.') + ' Cadascú veurà la seva pestanya; les decisions de l\'altre rol us arribaran en directe.</p>' +
+      '<div class="rolepick"><button class="btn big" data-a="role" data-v="teoc">Sóc TEOC</button><button class="btn big" data-a="role" data-v="cct">Sóc Charlie</button></div>' + (NET.status ? '<p class="fbk bad">' + esc(NET.status) + '</p>' : '') + '</div></div>';
+  }
+  function sidePanel() {
+    return '<div class="side"><h2>Joc de simultaneïtat</h2><p>El joc s\'ha de veure a l\'escenari de la reunió, perquè TEOC i Charlie hi juguin alhora.</p><button class="btn big" data-a="stage">Obre el joc a l\'escenari</button><p class="hint">' + esc(NET.status || 'Després, cadascú tria el seu rol a la seva pantalla.') + '</p></div>';
+  }
+  function netWrap() { return { v: 1, host: NET.me, seq: ++NET.seq, acks: NET.acks, S }; }
+  function netBroadcast() { try { NET.T.setState(netWrap()); } catch (e) { NET.status = 'No s\'ha pogut enviar l\'estat de la partida.'; } }
+  function netSend(a, d, val) {
+    const msg = { id: NET.me + ':' + (++NET.n), n: NET.n, from: NET.me, a, d, val, t: Date.now() };
+    NET.pending.push(msg); NET.T.send(msg); render();
+  }
+  function onNetState(w) {
+    if (!w || w.v !== 1 || !w.S) return;
+    if (w.host !== NET.me) {
+      NET.host = false; NET.hostId = w.host; NET.seq = Math.max(NET.seq, w.seq || 0); NET.acks = w.acks || {};
+      E.use(w.S.sc); S = w.S;
+      const ack = (w.acks || {})[NET.me] || 0; NET.pending = NET.pending.filter(m => m.n > ack);
+      render();
+    }
+  }
+  function onNetEvent(m) {
+    if (!NET.host || !m || m.from === NET.me || NET.done.has(m.id)) return;
+    NET.done.add(m.id); NET.acks[m.from] = Math.max(NET.acks[m.from] || 0, m.n);
+    act(m.a, m.d || {}, null, m.val);
+  }
+  setInterval(() => { if (NET.T && !NET.host) { const now = Date.now(); for (const m of NET.pending) if (now - m.t > 2500) { m.t = now; NET.T.send(m); } } }, 1000);
+  function becomeHost() { NET.host = true; NET.hostId = NET.me; netBroadcast(); }
+  const _act = act;
+  act = function (a, d, el, val) {
+    if (a === 'role') { NET.role = d.v; tab = d.v; if (!NET.hostId) becomeHost(); render(); return; }
+    if (a === 'takehost') { becomeHost(); render(); return; }
+    if (a === 'stage') { try { TLS.meeting.shareAppContentToStage(err => { NET.status = err ? 'No s\'ha pogut obrir a l\'escenari: ' + (err.message || err.errorCode || err) : ''; render(); }, location.href.split('?')[0] + '?teams=1'); } catch (e) { NET.status = 'No s\'ha pogut obrir a l\'escenari.'; render(); } return; }
+    return _act(a, d, el, val);
+  };
+  function loadScript(src) { return new Promise((ok, ko) => { const s = document.createElement('script'); s.src = src; s.onload = ok; s.onerror = ko; document.head.appendChild(s); }); }
+  async function netInit() {
+    const q = new URLSearchParams(location.search);
+    if (q.has('sim')) {
+      const ch = new BroadcastChannel('joc-simultaneitat-' + (q.get('sim') || 'prova'));
+      let cur = null; const sl = [], el = [];
+      ch.onmessage = e => { const m = e.data; if (m.k === 'state') { cur = m.w; sl.forEach(f => f(m.w)); } else if (m.k === 'evt') el.forEach(f => f(m.m)); else if (m.k === 'hello' && NET.host) ch.postMessage({ k: 'state', w: cur }); };
+      NET.T = { setState: w => { cur = w; ch.postMessage({ k: 'state', w }); }, send: m => ch.postMessage({ k: 'evt', m }) };
+      sl.push(onNetState); el.push(onNetEvent); NET.mode = 'sim'; ch.postMessage({ k: 'hello' });
+      setTimeout(render, 300); render(); return;
+    }
+    if (!q.has('teams')) return;
+    NET.mode = 'live'; NET.status = 'Connectant amb la reunió…'; render();
+    try {
+      await loadScript('teams.bundle.js');
+      await TLS.app.initialize();
+      const ctx = await TLS.app.getContext();
+      if (ctx && ctx.page && ctx.page.frameContext === 'sidePanel') { NET.side = true; NET.status = ''; render(); return; }
+      const client = new TLS.LiveShareClient(TLS.LiveShareHost.create());
+      const { container } = await client.joinContainer({ initialObjects: { estat: TLS.LiveState, accions: TLS.LiveEvent } });
+      const { estat, accions } = container.initialObjects;
+      estat.on('stateChanged', (w, local) => { if (!local) onNetState(w); });
+      accions.on('received', (m, local) => { if (!local) onNetEvent(m); });
+      await estat.initialize(null); await accions.initialize();
+      NET.T = { setState: w => estat.set(w), send: m => accions.send(m) };
+      NET.status = '';
+      if (estat.state && estat.state.S) onNetState(estat.state);
+      render();
+    } catch (e) {
+      NET.mode = 'local'; NET.status = ''; console.error(e); render();
+    }
+  }
+
+  const valFor = (a, d, el) => a === 'sendg' ? $('#sg-' + d.c).value : a === 'send' && d.k ? $('#s-' + d.k).value : el.type === 'checkbox' ? el.checked : (el.tagName === 'SELECT' || el.tagName === 'INPUT') ? el.value : null;
+  document.addEventListener('click', ev => { const el = ev.target.closest('button[data-a]'); if (el) act(el.dataset.a, Object.assign({}, el.dataset), el, valFor(el.dataset.a, el.dataset, el)); });
+  document.addEventListener('change', ev => { const el = ev.target.closest('select[data-a],input[data-a]'); if (el) act(el.dataset.a, Object.assign({}, el.dataset), el, valFor(el.dataset.a, el.dataset, el)); });
+
+  function boot(data) { if (data && data.v === 1) { E.use(data.sc); S = data; } else S = E.newGame(2026, 'remn'); lastPhase = S.phase; render(); netInit(); }
+  const hot = window.claude && window.claude.hot;
+  if (hot && hot.snapshot) hot.snapshot(() => S);
+  if (hot && hot.ready) hot.ready(boot); else boot((hot && hot.data) || {});
+})();
+
+</script>
+</body>
+</html>
