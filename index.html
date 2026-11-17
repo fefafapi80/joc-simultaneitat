@@ -3,30 +3,28 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Joc de simultaneïtat</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Barlow+Condensed:wght@500;600;700&display=swap" rel="stylesheet">
+<title>Joc de simultaneïtat · Bombers</title>
 <style>
 /* Disseny: taulell de sala de control. Mapa a l'esquerra, rols a la dreta, rellotge a dalt. */
 :root{
-  --bg:#efedf1;--surface:#fff;--ink:#1c1822;--muted:#655e6f;--line:#d9d3df;
-  --accent:#5a2d82;--accent-ink:#fff;--tint:#ede5f5;--sea:#cddde8;--land:#f7f5f9;
-  --p1:#c1272d;--p2:#c9620a;--p3:#1d6aa8;--p4:#6a6f7b;--ok:#2c7a4b;--warn:#a86a00;--bad:#c1272d;
-  --display:"Barlow Condensed","Arial Narrow",sans-serif;--body:"Barlow","Segoe UI",system-ui,sans-serif;
+  --bg:#f3f3f3;--surface:#fff;--ink:#1d1d1b;--muted:#5c5c5c;--line:#d9d9d9;
+  --brand:#c00000;--accent:#c00000;--accent-ink:#fff;--tint:#fbeaea;--sea:#d7e5ef;--land:#fafafa;--info:#1f5f99;--heat:#e07b00;
+  --p1:#d7262c;--p2:#e6b400;--p3:#2e9b47;--p4:#9b9b9b;--ok:#2c7a4b;--warn:#a86a00;--bad:#c00000;
+  --display:"Helvetica Neue",Helvetica,Arial,sans-serif;--body:"Helvetica Neue",Helvetica,Arial,sans-serif;
 }
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
-  --bg:#141118;--surface:#1f1b25;--ink:#ece8f1;--muted:#a69eb1;--line:#383141;
-  --accent:#b993e6;--accent-ink:#17131c;--tint:#2c2238;--sea:#1b3140;--land:#262130;
-  --p1:#ef6a6e;--p2:#f0a04a;--p3:#6cb2ea;--p4:#a2a7b3;--ok:#62c48a;--warn:#e3b04a;--bad:#ef6a6e;color-scheme:dark}}
+  --bg:#141414;--surface:#1f1f1f;--ink:#f0f0f0;--muted:#a9a9a9;--line:#3a3a3a;
+  --brand:#c00000;--accent:#ff5a4f;--accent-ink:#1a0505;--tint:#3a1c1c;--sea:#1b3140;--land:#262626;--info:#6fa9dd;--heat:#f0a04a;
+  --p1:#ff5a5f;--p2:#f2c94c;--p3:#5cc17a;--p4:#b3b3b3;--ok:#62c48a;--warn:#e3b04a;--bad:#ff5a4f;color-scheme:dark}}
 :root[data-theme="dark"]{
-  --bg:#141118;--surface:#1f1b25;--ink:#ece8f1;--muted:#a69eb1;--line:#383141;
-  --accent:#b993e6;--accent-ink:#17131c;--tint:#2c2238;--sea:#1b3140;--land:#262130;
-  --p1:#ef6a6e;--p2:#f0a04a;--p3:#6cb2ea;--p4:#a2a7b3;--ok:#62c48a;--warn:#e3b04a;--bad:#ef6a6e;color-scheme:dark}
+  --bg:#141414;--surface:#1f1f1f;--ink:#f0f0f0;--muted:#a9a9a9;--line:#3a3a3a;
+  --brand:#c00000;--accent:#ff5a4f;--accent-ink:#1a0505;--tint:#3a1c1c;--sea:#1b3140;--land:#262626;--info:#6fa9dd;--heat:#f0a04a;
+  --p1:#ff5a5f;--p2:#f2c94c;--p3:#5cc17a;--p4:#b3b3b3;--ok:#62c48a;--warn:#e3b04a;--bad:#ff5a4f;color-scheme:dark}
 *{box-sizing:border-box}
 html,body{height:100%;margin:0}
 body{background:var(--bg);color:var(--ink);font:15px/1.45 var(--body);display:flex;flex-direction:column}
 h1,h2,h3{font-family:var(--display);margin:0;text-wrap:balance;letter-spacing:.01em}
-h1{font-size:44px;line-height:1;font-weight:700;text-transform:uppercase}
+h1{font-size:38px;line-height:1.05;font-weight:700;letter-spacing:-.01em}
 h2{font-size:26px;font-weight:600}
 h3{font-size:17px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin:18px 0 8px}
 h3:first-child{margin-top:0}
@@ -42,13 +40,13 @@ button,select,input{font:inherit;color:inherit}
 .btn.big{font-family:var(--display);font-size:20px;text-transform:uppercase;letter-spacing:.05em;padding:8px 20px}
 .btn:hover{filter:brightness(1.1)}
 .chip{display:inline-block;font-size:12px;font-weight:600;padding:1px 8px;border-radius:99px;border:1px solid var(--line);color:var(--muted);white-space:nowrap}
-.chip.cp{border-color:var(--p3);color:var(--p3)}.chip.pc,.chip.cca{border-color:var(--accent);color:var(--accent)}.chip.cca{background:var(--tint)}
+.chip.cp{border-color:var(--info);color:var(--info)}.chip.pc,.chip.cca{border-color:var(--accent);color:var(--accent)}.chip.cca{background:var(--tint)}
 .chip.warn,.chip.filt{border-color:var(--warn);color:var(--warn)}.chip.bad{border-color:var(--bad);color:var(--bad)}.chip.ok{border-color:var(--ok);color:var(--ok)}
 .empty,.hint{color:var(--muted);font-size:14px}.hint{margin-top:8px}
 .tw{overflow-x:auto}
 
-#head{display:flex;align-items:center;gap:18px;flex-wrap:wrap;padding:10px 16px;background:var(--surface);border-bottom:3px solid var(--accent)}
-.brand b{font-family:var(--display);font-size:26px;letter-spacing:.08em;display:block;line-height:1}
+#head{display:flex;align-items:center;gap:18px;flex-wrap:wrap;padding:10px 16px;background:#fff;color:#1d1d1b;border-bottom:4px solid var(--brand)}
+.brand{display:flex;align-items:center;gap:14px}.brand img{height:40px;width:auto;display:block}.brand>div{border-left:1px solid #d9d9d9;padding-left:14px}.brand b{font:700 19px var(--display);letter-spacing:0;display:block;line-height:1.1;color:#1d1d1b}.brand span{color:#5c5c5c}
 .brand span{font-size:12px;color:var(--muted)}
 .steps{display:flex;gap:4px;list-style:none;margin:0;padding:0;flex:1;flex-wrap:wrap}
 .steps li{font-family:var(--display);text-transform:uppercase;letter-spacing:.05em;font-size:14px;padding:4px 10px 4px 4px;border:1px solid var(--line);border-radius:99px;color:var(--muted);display:flex;align-items:center;gap:6px}
@@ -72,17 +70,17 @@ button,select,input{font:inherit;color:inherit}
 
 svg{width:100%;height:auto;display:block}
 .sea{fill:var(--sea)}.seat{fill:var(--muted);font:italic 13px var(--body);opacity:.8}
-.zone{fill:color-mix(in srgb,var(--p2) calc(var(--t)*55%),var(--land));stroke:var(--line);stroke-width:1.5}
+.zone{fill:color-mix(in srgb,var(--heat) calc(var(--t)*55%),var(--land));stroke:var(--line);stroke-width:1.5}
 .zone.haspc{stroke:var(--accent);stroke-width:3}.zone.over{stroke:var(--bad);stroke-width:3;stroke-dasharray:6 4}
 .zn{font:600 11px var(--body);fill:var(--ink);text-anchor:middle}
 .zc{font:700 30px var(--display);fill:var(--ink);text-anchor:middle}
-.ubi{fill:var(--ink)}.ubi.disc{fill:var(--p3)}.ubi.rest{fill:none;stroke:var(--ink)}
-.agr{stroke:var(--muted);stroke-width:3;stroke-linecap:round}.agr.on{stroke:var(--p3)}.agr.over{stroke:var(--bad)}
-.agrt{font:600 13px var(--display);letter-spacing:.06em;fill:var(--muted)}.agrt.on{fill:var(--p3)}.agrt.over{fill:var(--bad)}
+.ubi{fill:var(--ink)}.ubi.disc{fill:var(--info)}.ubi.rest{fill:none;stroke:var(--ink)}
+.agr{stroke:var(--muted);stroke-width:3;stroke-linecap:round}.agr.on{stroke:var(--info)}.agr.over{stroke:var(--bad)}
+.agrt{font:600 13px var(--display);letter-spacing:.06em;fill:var(--muted)}.agrt.on{fill:var(--info)}.agrt.over{fill:var(--bad)}
 .pcb,.ccab{fill:var(--accent)}.pct,.ccat{fill:var(--accent-ink);font:700 11px var(--body);text-anchor:middle}.ccat{font-size:11px;letter-spacing:.04em}
-.park{fill:var(--p1);stroke:var(--surface);stroke-width:1.5}.park.ext{fill:var(--muted)}.park.ext.empty{fill:none;stroke:var(--bad)}
+.park{fill:var(--brand);stroke:var(--surface);stroke-width:1.5}.park.ext{fill:var(--muted)}.park.ext.empty{fill:none;stroke:var(--bad)}
 .parkt{font:500 11px var(--body);fill:var(--ink)}.extl{font:600 12px var(--display);letter-spacing:.08em;fill:var(--muted)}
-.river{stroke:var(--p3);stroke-width:5;opacity:.45;stroke-linecap:round}
+.river{stroke:var(--info);stroke-width:5;opacity:.45;stroke-linecap:round}
 .scsel{display:grid;gap:4px;font:600 13px var(--display);text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:16px}.scsel select{font:500 17px var(--body);text-transform:none;letter-spacing:0;color:var(--ink);padding:8px}
 .corona{border:1px solid var(--line);border-radius:6px;margin-bottom:10px;overflow:hidden}.chead{display:flex;align-items:center;gap:6px 12px;flex-wrap:wrap;padding:8px 10px;background:var(--bg)}.chead b{font:600 17px var(--display);text-transform:uppercase;letter-spacing:.05em}.chead small{flex:1;min-width:160px}
 .mapnote{font-size:12px;color:var(--muted);margin:6px 0 0}
@@ -104,7 +102,7 @@ svg{width:100%;height:auto;display:block}
 .ab{display:flex;gap:6px;flex-wrap:wrap}
 .pb{border:1px solid var(--line);background:var(--surface);border-radius:4px;padding:4px 9px;cursor:pointer;font-size:13px}
 .pb b{font-family:var(--display);font-size:15px}
-.pb.p1{border-color:var(--p1);color:var(--p1)}.pb.p2{border-color:var(--p2);color:var(--p2)}.pb.p3{border-color:var(--p3);color:var(--p3)}.pb.p4{border-color:var(--p4);color:var(--p4)}.pb.px{border-style:dashed;color:var(--muted)}
+.pb{display:inline-flex;align-items:center;gap:6px;color:var(--ink)}.pb small{color:var(--muted);font-size:12px}.pb.p1{border-color:var(--p1)}.pb.p2{border-color:var(--p2)}.pb.p3{border-color:var(--p3)}.pb.p4{border-color:var(--p4)}.pb.px{border-style:dashed;color:var(--muted)}
 .pb:hover{background:var(--tint)}
 table{border-collapse:collapse;width:100%;font-size:14px}
 th{text-align:left;font:600 12px var(--display);text-transform:uppercase;letter-spacing:.08em;color:var(--muted);padding:4px 8px;border-bottom:1px solid var(--line)}
@@ -153,7 +151,7 @@ blockquote{margin:10px 0 16px;padding:10px 14px;border-left:4px solid var(--acce
 .hint.top{margin:0 0 8px}
 .sendt td,.sendt th{padding:5px 4px;text-align:center}.sendt td:first-child,.sendt th:first-child{text-align:left}
 .pk{min-width:34px;border:1.5px solid currentColor;background:var(--surface);border-radius:4px;font:700 18px var(--display);padding:2px 6px;cursor:pointer}
-.pk.p1{color:var(--p1)}.pk.p2{color:var(--p2)}.pk.p3{color:var(--p3)}.pk.p4{color:var(--p4)}.pk:hover{background:var(--tint)}
+.pk{color:var(--ink)}.pk.p1{border-color:var(--p1)}.pk.p2{border-color:var(--p2)}.pk.p3{border-color:var(--p3)}.pk.p4{border-color:var(--p4)}.pk:hover{background:var(--tint)}
 .pk.all{border-width:3px}
 .pk0{color:var(--line)}
 .fl{white-space:nowrap;font-size:13px;font-variant-numeric:tabular-nums}.fl b{font:600 17px var(--display)}.fl.warn{color:var(--warn)}.fl.bad{color:var(--bad)}
@@ -194,7 +192,7 @@ tr.allrow td{background:var(--bg);border-bottom:0}tr.agrrow.top td{border-top:2p
 .sw.p1,.seg.p1{background:var(--p1)}.sw.p2,.seg.p2{background:var(--p2)}.sw.p3,.seg.p3{background:var(--p3)}.sw.p4,.seg.p4{background:var(--p4)}
 .sw.held,.seg.held{background:repeating-linear-gradient(135deg,var(--line) 0 4px,var(--surface) 4px 8px);border:1px solid var(--muted)}
 .crow{display:grid;grid-template-columns:185px 1fr 70px;gap:10px;align-items:center;padding:5px 0;border-top:1px solid var(--line)}
-.crow.sct .cn b{color:var(--muted)}.crow.pc .cn b{color:var(--accent)}.crow.cp .cn b{color:var(--p3)}
+.crow.sct .cn b{color:var(--muted)}.crow.pc .cn b{color:var(--accent)}.crow.cp .cn b{color:var(--info)}
 .cn b{display:block;font-size:13.5px;line-height:1.2}.cn small{font-size:11.5px}
 .cbar{position:relative;display:flex;height:22px;background:var(--bg);border-radius:4px;overflow:hidden}
 .seg{display:grid;place-items:center;color:#fff;font:700 12px var(--body);min-width:0}.seg.held{color:var(--ink)}
@@ -235,6 +233,14 @@ tr.allrow td{background:var(--bg);border-bottom:0}tr.agrrow.top td{border-top:2p
 @media (max-width:1280px){.steps{display:none}}
 @media (max-width:900px){.play,.prep{grid-template-columns:1fr;height:auto}.total{grid-template-columns:1fr}.panel{max-height:none}h1{font-size:34px}.bar{grid-template-columns:1fr 34px}.bar>div{grid-column:1/-1;order:3}}
 @media (prefers-reduced-motion:no-preference){.capbar i,.fat i,.bar i{transition:width .3s}}
+
+.ring{display:inline-block;width:14px;height:14px;border-radius:50%;border:3px solid var(--p4);box-sizing:border-box;vertical-align:-2px;flex:none;margin-right:4px}
+.ring.p1{border-color:var(--p1)}.ring.p2{border-color:var(--p2)}.ring.p3{border-color:var(--p3)}.ring.p4{border-color:var(--p4)}
+.prlg{display:flex;flex-wrap:wrap;gap:4px 12px;font-size:12.5px;color:var(--muted);margin:0 0 8px}.prlg span{display:inline-flex;align-items:center}
+.thl{display:block;font-size:10.5px;letter-spacing:.02em;text-transform:none}
+.seg.p2{color:#1d1d1b}
+.prio{padding-left:0;list-style:none}.prio li{display:flex;align-items:baseline;gap:6px;padding:3px 0}
+.areas em.d{margin-right:6px}
 
 </style>
 </head>
@@ -476,6 +482,7 @@ tr.allrow td{background:var(--bg);border-bottom:0}tr.agrrow.top td{border-top:2p
       "Truquen per anul·lar l'avís: ho ha resolt la brigada municipal"
     ]
   };
+  const PRN = { 1: 'Immediata', 2: 'Prioritària', 3: 'Demorable', 4: 'No té prioritat' };
   const WORK = { 1: 2, 2: 2, 3: 2, 4: 1 };
   const PREP = [
     { id: 'org', label: 'Organitzar la sala per grups de comunicació i assignar un TEOC per grup, amb un de relleu' },
@@ -524,7 +531,7 @@ tr.allrow td{background:var(--bg);border-bottom:0}tr.agrrow.top td{border-top:2p
       trigger: S => anyPC(S),
       text: () => "El cap d'intervenció del punt de comandament us truca: l'alcaldessa li acaba de dir que una residència de gent gran té aigua a la planta baixa. A la sala no hi consta cap avís.",
       opts: [
-        { t: "Ho incorporem ara com a actuació P1 i la traspassem al punt de comandament perquè hi destini recursos", good: true, fx: 'hiddenNow' },
+        { t: "Ho incorporem ara com a actuació immediata i la traspassem al punt de comandament perquè hi destini recursos", good: true, fx: 'hiddenNow' },
         { t: "Que l'alcaldessa truqui al 112 perquè entri pel circuit habitual", cat: 'persones', fx: 'hiddenLate' },
         { t: "Ho anotem i ho mirarem quan baixi el volum d'actuacions", cat: 'persones', fx: 'hiddenLate' }
       ],
@@ -662,16 +669,16 @@ tr.allrow td{background:var(--bg);border-bottom:0}tr.agrrow.top td{border-top:2p
       a.state = 'closed';
       if (!real) S.m.clsOk++;
       else {
-        S.m.errs.push({ id: a.id, text: a.text, did: 'Tancada com a duplicada o no vigent', was: 'P' + a.kind });
+        S.m.errs.push({ id: a.id, text: a.text, did: 'Tancada com a duplicada o no vigent', was: PRN[a.kind] });
         S.recalls.push({ r: S.round + 2, zone: a.zone, kind: a.kind, text: a.text, born: a.born });
         if (a.kind === 1) { S.m.ev.persones -= 20; key(S, "Has tancat com a duplicat un avís amb persones en risc (#" + a.id + ").", false); }
       }
     } else {
       a.cls = cls; a.state = 'held';
       if (real && cls === a.kind) S.m.clsOk++;
-      else S.m.errs.push({ id: a.id, text: a.text, did: 'Classificada P' + cls, was: real ? 'P' + a.kind : (a.kind === 'dup' ? 'duplicada' : 'no vigent') });
+      else S.m.errs.push({ id: a.id, text: a.text, did: 'Classificada ' + PRN[cls], was: real ? PRN[a.kind] : (a.kind === 'dup' ? 'duplicada' : 'no vigent') });
       if (!real) a.work = 1;
-      if (a.kind === 1 && cls > 1) { S.m.ev.persones -= 10; key(S, "Un avís amb persones en risc s'ha classificat P" + cls + ' (#' + a.id + ').', false); }
+      if (a.kind === 1 && cls > 1) { S.m.ev.persones -= 10; key(S, "Un avís amb persones en risc s'ha classificat com a " + PRN[cls].toLowerCase() + ' (#' + a.id + ').', false); }
     }
     return 'ok';
   }
@@ -812,7 +819,7 @@ tr.allrow td{background:var(--bg);border-bottom:0}tr.agrrow.top td{border-top:2p
     /* estructures: es valoren amb la foto que els jugadors tenien davant */
     if (!cur.multi && total(S) > 10 && !S.st.cp.S && !S.st.cp.N) { S.m.lateCP++; if (!S.wAgr) { S.wAgr = 1; key(S, "L'agrupació " + AGRUP.name + ' supera les 10 actuacions sense cap control parc.', false); } }
     else for (const g in AGR) if (agrCount(S, g) > 10 && !S.st.cp[g]) { S.m.lateCP++; if (!S['w' + g]) { S['w' + g] = 1; key(S, "L'" + AGR[g].name + ' supera les 10 actuacions sense control parc' + (cur.multi ? '.' : ' propi.'), false); } }
-    for (const a of held(S)) if (a.cls === 1 && !a.heldWarn) { a.heldWarn = true; log(S, 'Avís #' + a.id + ' prioritzat P1 però no enviat al terreny.', 'bad'); }
+    for (const a of held(S)) if (a.cls === 1 && !a.heldWarn) { a.heldWarn = true; log(S, 'Avís #' + a.id + ' prioritzat com a immediat però no enviat al terreny.', 'bad'); }
     for (const z of ZONES) if (zoneCount(S, z.id) > 20 && !S.st.pc[z.id]) { S.m.latePC++; if (!S['wz' + z.id]) { S['wz' + z.id] = 1; key(S, z.name + ' supera les 20 actuacions sense punt de comandament.', false); } }
     if (pcCount(S) >= 2 && !S.st.cca) { S.m.lateCCA++; if (!S.wcca) { S.wcca = 1; key(S, "Hi ha més d'un punt de comandament i no s'ha escalat a CCA.", false); } }
     const left = inbox(S).length;
@@ -913,12 +920,12 @@ tr.allrow td{background:var(--bg);border-bottom:0}tr.agrrow.top td{border-top:2p
 
   /* ---------- preparació en missions ---------- */
   const PRAC = [
-    { t: 'Vehicle atrapat en un gual amb una persona a dins que demana ajuda', a: '1', why: 'P1: hi ha una persona en risc.' },
-    { t: "Garatge comunitari amb un pam d'aigua, sense ningú a dins", a: '4', why: 'P4: no hi ha risc directe ni immediat per a ningú.' },
-    { t: 'Cable elèctric caigut sobre un carrer inundat', a: '2', why: 'P2: és un risc associat que pot posar en perill les persones.' },
+    { t: 'Vehicle atrapat en un gual amb una persona a dins que demana ajuda', a: '1', why: 'Immediata: hi ha una persona en risc.' },
+    { t: "Garatge comunitari amb un pam d'aigua, sense ningú a dins", a: '4', why: 'No té prioritat: no hi ha risc directe ni immediat per a ningú.' },
+    { t: 'Cable elèctric caigut sobre un carrer inundat', a: '2', why: 'Prioritària: és un risc associat que pot posar en perill les persones.' },
     { t: 'Segona trucada pel mateix vehicle atrapat al gual', a: 'close', why: "Duplicat: ja tens l'actuació oberta. Comprova si aporta informació nova i tanca-la." }
   ];
-  const PLAB = { 1: 'P1', 2: 'P2', 3: 'P3', 4: 'P4', close: 'Duplicat o no vigent' };
+  const PLAB = { 1: 'Immediata', 2: 'Prioritària', 3: 'Demorable', 4: 'No té prioritat', close: 'Duplicat o no vigent' };
   function missions() {
     const cps = Object.values(E.AGR).map(g => E.PARKS[g.park].name + " per a l'" + g.name).join(' i ');
     const c1 = Object.keys(E.PARKS).filter(k => E.PARKS[k].corona === 1).map(k => E.PARKS[k].name);
@@ -947,9 +954,9 @@ tr.allrow td{background:var(--bg);border-bottom:0}tr.agrrow.top td{border-top:2p
   function coach() {
     const T = [], C = [], hd = E.held(S), ib = E.inbox(S).length, hp1 = hd.filter(a => a.cls === 1).length;
     if (ib) T.push({ t: 'Prioritzeu els ' + ib + ' avisos de la bústia 1. Comenceu pels que tenen persones en risc.', u: ib > 4 });
-    if (hp1) T.push({ t: 'Envieu ja les ' + hp1 + ' P1 de la bústia 2: no poden esperar.', u: true });
+    if (hp1) T.push({ t: 'Envieu ja ' + (hp1 > 1 ? 'les ' + hp1 + ' immediates' : 'la immediata') + ' de la bústia 2: no poden esperar.', u: true });
     const room = E.ZONES.filter(z => { const f = E.fieldLoad(S, z.id); return f.open < f.limit && hd.some(a => a.zone === z.id && a.cls > 1); });
-    if (room.length) T.push({ t: 'Hi ha marge al terreny a ' + room.map(z => z.name).join(', ') + ': envieu-hi els paquets P2 i P3.' });
+    if (room.length) T.push({ t: 'Hi ha marge al terreny a ' + room.map(z => z.name).join(', ') + ': envieu-hi els paquets de prioritàries i demorables.' });
     if (!T.length) T.push({ t: 'Bústies al dia.', ok: true });
     const nocp = !S.st.cp.S && !S.st.cp.N;
     if (!E.SC.multi && nocp) { const t = E.total(S); if (t > 10) C.push({ t: "L'agrupació té " + t + ' actuacions i el llindar és 10: activeu un control parc.', u: true }); else if (t >= 7) C.push({ t: "L'agrupació s'acosta al llindar (" + t + ' de 10). Activar el control parc abans de superar-lo puntua.' }); }
@@ -965,6 +972,12 @@ tr.allrow td{background:var(--bg);border-bottom:0}tr.agrrow.top td{border-top:2p
     return '<div class="coach">' + col('teoc', T) + col('cct', C) + '</div>';
   }
   const zn = z => E.ZONES[z].name;
+  /* Prioritats: la 1 interna és la més alta. Es mostren amb l'anella de color. */
+  const PR = { 1: [3, 'Immediata'], 2: [2, 'Prioritària'], 3: [1, 'Demorable'], 4: [0, 'No té prioritat'] };
+  const pn = c => PR[c][1], ring = c => '<i class="ring p' + c + '" aria-hidden="true"></i>';
+  const PDESC = { 1: 'Persones en risc', 2: 'Risc associat', 3: 'Servei essencial', 4: 'Sense risc immediat' };
+  const pbtn = (attrs, c) => '<button class="pb p' + c + '" ' + attrs + ' title="' + PDESC[c] + '">' + ring(c) + '<b>' + PR[c][0] + ' · ' + pn(c) + '</b><small>' + PDESC[c] + '</small></button>';
+  const LOGO = 'data:image/png;base64,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LZdfZlVUoGG4584M89gLz+998EEef9Aj5xIg55xz0ocO1dVamsndb7/dl5mpXIXBmrf7fvGLo88+i4YROXxjeBohKBzee//9+3//mN8whBCGEIYQwjQDPl+vOXM65E4N7dpnFo9WsboMnbBk7Pg77wRXrkDTjGwexyFHkuOQbaNhONXVwVWruBsjhkgAvoJCs0cBa8ltRACnqmrThRfu/slPaj79NHz4iFVRUffF+rJfzCn53veayssTwK/IuUOqy/XXBfr0jWW3IypQqW633Jp11lnScZo1ovb7lNp+yy1bp08/sezvTXv32sePh/btq1q+fPtNN225/ArV2BjnRDOmpAx07lx4771AlAwC/HapWMFY9eo1G4qLDz3xRENpqXW8MrR/f9W7726/7vrtM27B2IETf3wVzLq7Ga7JGEnp69Gj1733OkoxF4oNpESlts+cueXSSytfeaVx61arstI6dqy+pOTgE0+sHzWq/LHHGGNkRzQfANiW1fW669MGDTrN8vRUKrbTNdeiLvlqNp0JbHvr1dccX7IkBnNBwVEINIxQWVnp1dPDFRXusI/2IHPOn8hMU7TEzQjM3nEOLFx4eOFCIzMTOLODNRKAAyQKK6JSykxP7/3QrxNqOXSUgAUCA5999suJE0n7jFF0LABwxGNvvFHxxhuGz8fS0lRTkx0KEYABSBinv5Exx3GGLlhodunS3nr8f2WBJRCMhQ8d2vnznwtEIydHhcN2YyMBCGREccKqYc6dJk7sfNWV5AJYImMkZc/Z95/8xz+C69cLN7BaK7Ply48vXy6Q8awsIOXU1joADMANkUHGlJT+Tp37zHtEB486IMzMGCmVN3lyTnFxcP16waPFvYoYol11csu11+aMGpVzwQWBoiKekW5VHK9dt7Zq+XKrpkYkYXkZQPc772zhvgxEMz/fOnGCMUYEhuAkpV1Xp/eMwUVzyWVsJwnh2PagJ58M9O2bvDt1uVX2uecOeuaZbTNnCmTuAiwiMjgHABUOy3AYAHT9cQTB7cJqWY5T9Otfd772mm/1NeoEwP1+FMKpr0dARDQYIymt6mo992S4NHKuHMfMzh747LMp8gqI6PMPWfxaybnfCx09ariqYrRhoA1fuyaoPRdDCHeRIDKmLdvBz//F1717xyhXLRVKoRBFzzxT8t3vKsti0UXX2pAjBktKqktK3Eg3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';
   /* Comandament màxim de cada UBI segons la plantilla per torn: tipus A (1 sergent, 2 caporals) i B (1 sergent, 1 caporal) → la primera UBI la porta el sergent; tipus C → caporal. */
   const cmdOf = u => { const t = E.PARKS[u.park].type, n = +u.id.split('-').pop(); return (t === 'A' || t === 'B') && n === 1 ? 'Sergent' : 'Caporal'; };
 
@@ -1036,25 +1049,25 @@ tr.allrow td{background:var(--bg);border-bottom:0}tr.agrrow.top td{border-top:2p
     const ib = E.inbox(S), hd = E.held(S), cap = E.cap(S), left = Math.max(0, cap - S.used);
     let h = '<div class="capbox"><div><b>Capacitat de la sala aquest torn</b><span>' + (left % 1 ? left.toFixed(1) : left) + ' gestions de ' + cap + '</span></div><div class="capbar"><i style="width:' + (100 * left / cap) + '%"></i></div><p>Prioritzar un avís costa una gestió, o mitja si la zona ja té control parc o punt de comandament. Enviar no costa res. Les actuacions enviades que la sala segueix directament li resten capacitat.</p></div>';
     if (flash) h += '<p class="flash">' + flash + '</p>';
-    h += '<div class="two"><section><h3>Bústia 1 · Per prioritzar <i class="cnt">' + ib.length + '</i></h3>';
+    h += '<div class="two"><section><h3>Bústia 1 · Per prioritzar <i class="cnt">' + ib.length + '</i></h3><p class="prlg"><span>Prioritat · l\'anella de color la indica:</span>' + [4, 3, 2, 1].map(c => '<span>' + ring(c) + PR[c][0] + '. ' + pn(c) + '</span>').join('') + '</p>';
     if (!ib.length) h += '<p class="empty">Cap avís pendent de prioritzar.</p>';
     else {
       h += '<ul class="inbox">';
       for (const a of ib) {
         h += '<li><div class="ah"><span class="aid">#' + a.id + '</span>' + chip(zn(a.zone)) + (S.round - a.born >= 1 ? chip('Espera ' + (S.round - a.born) * 15 + ' min', 'warn') : '') + (S.prep.filtre && a.dupOf ? chip("Filtre: coincideix amb l'avís #" + a.dupOf, 'filt') : '') + '</div><p>' + esc(a.text) + '</p><div class="ab">' +
-          [[1, 'Persones en risc'], [2, 'Risc associat'], [3, 'Servei essencial'], [4, 'Sense risc immediat']].map(x => '<button class="pb p' + x[0] + '" data-a="cls" data-id="' + a.id + '" data-v="' + x[0] + '" title="' + x[1] + '"><b>P' + x[0] + '</b> ' + x[1] + '</button>').join('') +
+          [1, 2, 3, 4].map(c => pbtn('data-a="cls" data-id="' + a.id + '" data-v="' + c + '"', c)).join('') +
           '<button class="pb px" data-a="cls" data-id="' + a.id + '" data-v="close">Duplicat o no vigent</button></div></li>';
       }
       h += '</ul>';
     }
-    h += '</section><section><h3>Bústia 2 · Per enviar <i class="cnt">' + hd.length + '</i></h3><p class="hint top">Cada casella és un paquet: les actuacions prioritzades d\'una zona i una prioritat. Premeu-la per enviar-lo. El terreny només veu el que heu enviat.</p><div class="tw"><table class="sendt"><thead><tr><th>Zona</th>' + [1, 2, 3, 4].map(p => '<th class="d p' + p + '">P' + p + '</th>').join('') + '<th>Al terreny</th></tr></thead><tbody>';
+    h += '</section><section><h3>Bústia 2 · Per enviar <i class="cnt">' + hd.length + '</i></h3><p class="hint top">Cada casella és un paquet: les actuacions prioritzades d\'una zona i una prioritat. Premeu-la per enviar-lo. El terreny només veu el que heu enviat.</p><div class="tw"><table class="sendt"><thead><tr><th>Zona</th>' + [1, 2, 3, 4].map(p => '<th title="' + pn(p) + '">' + ring(p) + '<span class="thl">' + pn(p) + '</span></th>').join('') + '<th>Al terreny</th></tr></thead><tbody>';
     for (const z of E.ZONES) {
       const ow = E.zoneOwner(S, z.id), fl = E.fieldLoad(S, z.id), n = S.ubis.filter(u => u.zone === z.id).length;
       h += '<tr><td><b>' + z.name + '</b><small>' + (ow === 'pc' ? 'Punt de comandament' : ow === 'cp' ? 'Control parc' : 'Sala') + ' · ' + n + ' UBI</small></td>';
-      for (const p of [1, 2, 3, 4]) { const c = hd.filter(a => a.zone === z.id && a.cls === p).length; h += '<td>' + (c ? '<button class="pk p' + p + '" data-a="send" data-z="' + z.id + '" data-p="' + p + '" aria-label="Envia ' + c + ' actuacions P' + p + ' de ' + z.name + '">' + c + '</button>' : '<span class="pk0">·</span>') + '</td>'; }
+      for (const p of [1, 2, 3, 4]) { const c = hd.filter(a => a.zone === z.id && a.cls === p).length; h += '<td>' + (c ? '<button class="pk p' + p + '" data-a="send" data-z="' + z.id + '" data-p="' + p + '" aria-label="Envia ' + c + ' actuacions de prioritat ' + pn(p).toLowerCase() + ' de ' + z.name + '">' + c + '</button>' : '<span class="pk0">·</span>') + '</td>'; }
       h += '<td class="fl' + (fl.open > fl.limit ? ' bad' : fl.open >= fl.limit ? ' warn' : '') + '"><b>' + fl.open + '</b> de ' + fl.limit + '</td></tr>';
     }
-    h += '<tr class="allrow"><td><b>Totes les zones</b></td>' + [1, 2, 3, 4].map(p => { const c = hd.filter(a => a.cls === p).length; return '<td>' + (c ? '<button class="pk all p' + p + '" data-a="send" data-z="all" data-p="' + p + '" aria-label="Envia totes les P' + p + '">' + c + '</button>' : '<span class="pk0">·</span>') + '</td>'; }).join('') + '<td></td></tr></tbody></table></div><p class="hint">«Al terreny» compta les actuacions enviades i encara obertes, i quantes en pot assumir la zona amb les UBI que hi té (4 per UBI). Si se supera, les unitats perden eficàcia.</p></section></div>';
+    h += '<tr class="allrow"><td><b>Totes les zones</b></td>' + [1, 2, 3, 4].map(p => { const c = hd.filter(a => a.cls === p).length; return '<td>' + (c ? '<button class="pk all p' + p + '" data-a="send" data-z="all" data-p="' + p + '" aria-label="Envia totes les de prioritat ' + pn(p).toLowerCase() + '">' + c + '</button>' : '<span class="pk0">·</span>') + '</td>'; }).join('') + '<td></td></tr></tbody></table></div><p class="hint">«Al terreny» compta les actuacions enviades i encara obertes, i quantes en pot assumir la zona amb les UBI que hi té (4 per UBI). Si se supera, les unitats perden eficàcia.</p></section></div>';
     return h;
   }
   function pCct() {
@@ -1096,9 +1109,9 @@ tr.allrow td{background:var(--bg);border-bottom:0}tr.agrrow.top td{border-top:2p
     let h = '';
     for (const g of act) {
       const us = S.ubis.filter(u => u.zone !== null && u.zone >= 0 && g.zones.includes(u.zone) && E.zoneOwner(S, u.zone) === 'cp');
-      h += '<section class="blk"><h3>Control parc de ' + E.PARKS[g.park].name + ' · ' + g.name + '</h3><div class="areas">' + g.zones.map((z, i) => { const o = S.acts.filter(a => a.zone === z && a.state === 'open'); return '<div class="area' + (S.st.pc[z] === 'on' ? ' ispc' : '') + '"><b>Àrea ' + 'ABCD'[i] + ' · ' + zn(z) + '</b>' + (S.st.pc[z] === 'on' ? '<span>La gestiona el punt de comandament</span>' : '<span>' + o.length + ' obertes · ' + [1, 2, 3, 4].map(p => '<em class="d p' + p + '">P' + p + ' ' + o.filter(a => a.cls === p).length + '</em>').join(' ') + '</span>') + '</div>'; }).join('') + '</div>';
+      h += '<section class="blk"><h3>Control parc de ' + E.PARKS[g.park].name + ' · ' + g.name + '</h3><div class="areas">' + g.zones.map((z, i) => { const o = S.acts.filter(a => a.zone === z && a.state === 'open'); return '<div class="area' + (S.st.pc[z] === 'on' ? ' ispc' : '') + '"><b>Àrea ' + 'ABCD'[i] + ' · ' + zn(z) + '</b>' + (S.st.pc[z] === 'on' ? '<span>La gestiona el punt de comandament</span>' : '<span>' + o.length + ' obertes · ' + [1, 2, 3, 4].map(p => '<em class="d" title="' + pn(p) + '">' + ring(p) + o.filter(a => a.cls === p).length + '</em>').join(' ') + '</span>') + '</div>'; }).join('') + '</div>';
       h += S.logi[g.id] ? '<p class="okline">Logística activa: avituallament, combustible, material de recanvi i unitat Limes.</p>' : '<button class="btn" data-a="logi" data-g="' + g.id + '">Activa la logística i l\'avituallament</button>';
-      h += ubiTable(us, g.zones, true) + '<p class="hint">Aquí només hi surten les actuacions que la sala ha enviat. Les UBI les trien per prioritat i proximitat. Una UBI discriminadora tanca duplicats, resol actuacions P4 amb indicacions i corregeix prioritats mal assignades.</p></section>';
+      h += ubiTable(us, g.zones, true) + '<p class="hint">Aquí només hi surten les actuacions que la sala ha enviat. Les UBI les trien per prioritat i proximitat. Una UBI discriminadora tanca duplicats, resol actuacions sense prioritat amb indicacions i corregeix prioritats mal assignades.</p></section>';
     }
     return h;
   }
@@ -1108,7 +1121,7 @@ tr.allrow td{background:var(--bg);border-bottom:0}tr.agrrow.top td{border-top:2p
     let h = '';
     for (const z of zs) {
       const o = S.acts.filter(a => a.zone === z && a.state === 'open'), g = E.AGR[E.ZONES[z].agr];
-      h += '<section class="blk"><h3>Punt de comandament · ' + zn(z) + '</h3><p class="dep">Depèn ' + (S.st.cca ? 'del ' + E.SC.cca : 'de la sala de control territorial') + '. Punt de referència per a autoritats i agències.</p><div class="areas"><div class="area"><b>Bombolla</b><span>' + o.length + ' obertes · ' + [1, 2, 3, 4].map(p => '<em class="d p' + p + '">P' + p + ' ' + o.filter(a => a.cls === p).length + '</em>').join(' ') + '</span></div></div>';
+      h += '<section class="blk"><h3>Punt de comandament · ' + zn(z) + '</h3><p class="dep">Depèn ' + (S.st.cca ? 'del ' + E.SC.cca : 'de la sala de control territorial') + '. Punt de referència per a autoritats i agències.</p><div class="areas"><div class="area"><b>Bombolla</b><span>' + o.length + ' obertes · ' + [1, 2, 3, 4].map(p => '<em class="d" title="' + pn(p) + '">' + ring(p) + o.filter(a => a.cls === p).length + '</em>').join(' ') + '</span></div></div>';
       const p1 = o.filter(a => a.kind === 1 && a.cls === 1);
       if (p1.length) h += '<ul class="p1l">' + p1.map(a => '<li><b>#' + a.id + '</b> ' + esc(a.text) + (a.first === null ? ' ' + chip('Sense unitat', 'bad') : ' ' + chip('Unitat treballant-hi', 'ok')) + '</li>').join('') + '</ul>';
       h += ubiTable(S.ubis.filter(u => u.zone === z), g.zones, false) + '</section>';
@@ -1134,14 +1147,14 @@ tr.allrow td{background:var(--bg);border-bottom:0}tr.agrrow.top td{border-top:2p
       const sg = d.here.filter(x => cmdOf(x) === 'Sergent').length, cp = d.here.length - sg, rest = d.here.filter(x => x.mode === 'rest' || x.lock > 0).length;
       return '<div class="res2' + (d.ubi === 0 && tot ? ' bad' : '') + '"><b>' + d.ubi + ' UBI</b>' + (d.coming ? ' · +' + d.coming + ' en camí' : '') + (rest ? ' · ' + rest + ' en descans' : '') + (d.ubi ? '<br>Màx.: <b>' + (sg ? 'Sergent' : 'Caporal') + '</b> (' + sg + ' sgt · ' + cp + ' cap)' : '') + '</div>';
     };
-    let h = '<div class="card cart"><div class="carth"><h3>Cartera al terreny</h3><span class="lg">' + [1, 2, 3, 4].map(p => '<i class="sw p' + p + '"></i>P' + p).join(' ') + ' <i class="sw held"></i>Retingudes a sala</span></div>';
+    let h = '<div class="card cart"><div class="carth"><h3>Cartera al terreny</h3><span class="lg">' + [1, 2, 3, 4].map(p => '<i class="sw p' + p + '"></i>' + pn(p)).join(' ') + ' <i class="sw held"></i>Retingudes a sala</span></div>';
     for (const d of data) {
       const tot = d.p.reduce((a, b) => a + b, 0);
-      h += '<div class="crow ' + d.kind + '"><div class="cn"><b>' + esc(d.name) + '</b><small>' + esc(d.sub) + '</small>' + res(d, tot) + '</div><div class="cbar" role="img" aria-label="' + esc(d.name) + ': ' + d.p.map((n, i) => 'P' + (i + 1) + ' ' + n).join(', ') + ', ' + d.held + ' retingudes">' +
+      h += '<div class="crow ' + d.kind + '"><div class="cn"><b>' + esc(d.name) + '</b><small>' + esc(d.sub) + '</small>' + res(d, tot) + '</div><div class="cbar" role="img" aria-label="' + esc(d.name) + ': ' + d.p.map((n, i) => pn(i + 1) + ' ' + n).join(', ') + ', ' + d.held + ' retingudes">' +
         d.p.map((n, i) => n ? '<span class="seg p' + (i + 1) + '" style="width:' + pct(n) + '">' + (n * 100 / max >= 4 ? n : '') + '</span>' : '').join('') +
         (d.held ? '<span class="seg held" style="width:' + pct(d.held) + '">' + (d.held * 100 / max >= 4 ? d.held : '') + '</span>' : '') +
         (d.kind !== 'sct' || d.lim === 10 ? '<span class="lim" style="left:' + pct(d.lim) + '" title="Llindar ' + d.lim + '"></span>' : '') + '</div>' +
-        '<div class="ct"><b>' + tot + '</b><small>enviades</small>' + (d.heldP1 ? '<em>' + d.heldP1 + ' P1 retinguda' + (d.heldP1 > 1 ? 'es' : '') + '</em>' : '') + '</div></div>';
+        '<div class="ct"><b>' + tot + '</b><small>enviades</small>' + (d.heldP1 ? '<em>' + d.heldP1 + (d.heldP1 > 1 ? ' immediates retingudes' : ' immediata retinguda') + '</em>' : '') + '</div></div>';
     }
     return h + '<p class="mapnote">La ratlla vertical marca el llindar: 10 per al control parc, 20 per al punt de comandament.</p></div>';
   }
@@ -1198,7 +1211,7 @@ tr.allrow td{background:var(--bg);border-bottom:0}tr.agrrow.top td{border-top:2p
     const SC = E.SC, loc = Object.values(E.PARKS).filter(p => p.zone !== null), M = myMissions(), st = S.pstep;
     let h = '<div class="prep"><div class="brief"><p class="eyebrow">' + SC.region + ' · Fase 1 · Preparació · 16:30 h</p><h1>' + SC.title + '</h1><p class="lead">' + SC.lead + ' Sou la sala de la ' + SC.regionName + '.</p>' +
       '<div class="how"><b>Com es juga</b><ol><li><span>1</span><div><b>Prepareu el dispositiu.</b> Sis missions curtes: cinc decisions de la guia i una prova de les bústies.</div></li><li><span>2</span><div><b>Gestioneu l\'episodi.</b> Cada torn són 15 minuts, de 17:00 a 21:00. Un panell us dirà què toca fer a cada moment.</div></li><li><span>3</span><div><b>Llegiu l\'informe.</b> Puntuació sobre 100 i els moments clau, bons i dolents.</div></li></ol></div>' +
-      '<div class="roles"><div><b>TEOC</b><span>Rep els avisos (bústia 1), els prioritza de P1 a P4 i decideix quins paquets envia al terreny i quan (bústia 2).</span></div><div><b>Charlie · Cap de coordinació territorial</b><span>Mira els comptadors i decideix quan s\'activen el control parc, el punt de comandament i el CCA, i d\'on surten els reforços.</span></div></div>' +
+      '<div class="roles"><div><b>TEOC</b><span>Rep els avisos (bústia 1), els prioritza (immediata, prioritària, demorable o sense prioritat) i decideix quins paquets envia al terreny i quan (bústia 2).</span></div><div><b>Charlie · Cap de coordinació territorial</b><span>Mira els comptadors i decideix quan s\'activen el control parc, el punt de comandament i el CCA, i d\'on surten els reforços.</span></div></div>' +
       '<p class="hint">Recursos de sortida: ' + loc.map(p => p.name + ' ' + p.ubi + ' UBI').join(' · ') + '. Podeu demanar reforç de qualsevol parc de Catalunya.</p></div><div class="prepform">';
     if (NET.mode === 'local') h += '<p class="modeline">Mode: <b>' + ({ teoc: 'sol, fent de TEOC', cct: 'sol, fent de Charlie', both: 'sol, fent els dos rols' }[S.solo] || '') + '</b> <button class="linkb" data-a="chmode">Canvia</button></p>';
     h += '<label class="scsel" for="sc">Regió i escenari<select id="sc" data-a="sc">' + Object.values(E.SCEN).map(x => '<option value="' + x.id + '"' + (x.id === SC.id ? ' selected' : '') + '>' + x.region + ' · ' + x.title + '</option>').join('') + E.PLANNED.map(x => '<option disabled>' + x[0] + ' · ' + x[1] + ' (en preparació)</option>').join('') + '</select></label>';
@@ -1211,10 +1224,10 @@ tr.allrow td{background:var(--bg);border-bottom:0}tr.agrrow.top td{border-top:2p
         h += '<p>La <b>bústia 1</b> és on entren els avisos: els heu de prioritzar. La <b>bústia 2</b> guarda els que ja heu prioritzat fins que decidiu enviar-los al terreny. Classifiqueu aquests quatre avisos d\'exemple.</p><ul class="inbox prac">';
         PRAC.forEach((x, i) => {
           const a = S.prac[i];
-          h += '<li><p>' + esc(x.t) + '</p>' + (a === undefined ? '<div class="ab">' + [[1, 'Persones en risc'], [2, 'Risc associat'], [3, 'Servei essencial'], [4, 'Sense risc immediat']].map(y => '<button class="pb p' + y[0] + '" data-a="prac" data-i="' + i + '" data-v="' + y[0] + '"><b>P' + y[0] + '</b> ' + y[1] + '</button>').join('') + '<button class="pb px" data-a="prac" data-i="' + i + '" data-v="close">Duplicat o no vigent</button></div>' : '<p class="fbk ' + (a === x.a ? 'ok' : 'bad') + '">' + (a === x.a ? '✓ Correcte. ' : '✕ Has triat ' + PLAB[a] + '. ') + x.why + '</p>') + '</li>';
+          h += '<li><p>' + esc(x.t) + '</p>' + (a === undefined ? '<div class="ab">' + [1, 2, 3, 4].map(c => pbtn('data-a="prac" data-i="' + i + '" data-v="' + c + '"', c)).join('') + '<button class="pb px" data-a="prac" data-i="' + i + '" data-v="close">Duplicat o no vigent</button></div>' : '<p class="fbk ' + (a === x.a ? 'ok' : 'bad') + '">' + (a === x.a ? '✓ Correcte. ' : '✕ Has triat ' + PLAB[a] + '. ') + x.why + '</p>') + '</li>';
         });
         h += '</ul>';
-        if (all) h += S.pracSent ? '<p class="fbk ok">✓ Enviat. El terreny ja té la P1; la resta queda retinguda a la bústia 2 fins que hi hagi marge. Durant l\'episodi ho fareu per zones i prioritats.</p>' : '<div class="pracsend"><span>Bústia 2: la P1 està prioritzada però encara no l\'ha vista ningú al terreny.</span><button class="pk all p1" data-a="pracsend">Envia el paquet P1</button></div>';
+        if (all) h += S.pracSent ? '<p class="fbk ok">✓ Enviat. El terreny ja té l\'avís immediat; la resta queda retinguda a la bústia 2 fins que hi hagi marge. Durant l\'episodi ho fareu per zones i prioritats.</p>' : '<div class="pracsend"><span>Bústia 2: l\'avís immediat està prioritzat però encara no l\'ha vist ningú al terreny.</span><button class="pk all p1" data-a="pracsend">Envia el paquet d\'immediates</button></div>';
         if (all && S.pracSent) h += '<div class="mnext"><button class="btn big" data-a="pnext">Següent missió</button></div>';
       } else {
         const a = S.pq[m.id];
@@ -1286,14 +1299,14 @@ tr.allrow td{background:var(--bg);border-bottom:0}tr.agrrow.top td{border-top:2p
     }
     if (NET.mode !== 'local' && !NET.nowait && (!NET.role || !(S.seats && S.seats.teoc && S.seats.cct))) return lobby();
     if (modal === 'pair') return '<div class="ov"><div class="dlg" role="dialog" aria-modal="true"><p class="eyebrow">En parella · TEOC + Charlie</p><h2>Qui crea la sala?</h2><div class="pairopts"><div><b>Sóc el primer</b><span>Creo la sala i passo el codi al company.</span><button class="btn big" data-a="mkroom">Crea una sala</button></div><div><b>Ja tinc un codi</b><span>El company ja ha creat la sala.</span><div class="pairrow"><label for="roomcode" class="sr">Codi de sala</label><input id="roomcode" maxlength="7" autocomplete="off" placeholder="ABC123"><button class="btn" data-a="joinroom">Entra</button></div></div></div>' + (NET.active === undefined ? '<p class="hint">Comprovant quantes sales hi ha obertes…</p>' : NET.active === null ? '' : '<p class="occ' + (NET.active >= 45 ? ' bad' : '') + '"><b>' + NET.active + '</b> ' + (NET.active === 1 ? 'sala en joc' : 'sales en joc') + ' ara mateix, d\'un màxim d\'unes 50.' + (NET.active >= 45 ? ' És possible que no hi càpigueu: proveu-ho d\'aquí a una estona.' : '') + '</p>') + '<p class="hint">No cal cap compte. La partida passa per un servei de Google (Firebase) i no s\'hi guarda cap dada personal.</p><button class="btn ghost" data-a="closem">Enrere</button></div></div>';
-    if (modal === 'guia') return '<div class="ov"><div class="dlg wide" role="dialog" aria-modal="true"><h2>Guia ràpida</h2><div class="tw"><table class="st"><thead><tr><th></th><th>Control parc</th><th>Punt de comandament</th><th>CCA</th></tr></thead><tbody><tr><td><b>Quan s\'activa</b></td><td>Més de 10 actuacions simultànies en una agrupació, o previsió de superar-les</td><td>Més de 20 actuacions en un àmbit concret, o abans si la gravetat ho justifica</td><td>Diversos punts de comandament en una zona, o SISCOM 3 o 4</td></tr><tr><td><b>On es desplega</b></td><td>En un parc</td><td>Al municipi o barri, preferentment a partir del control parc</td><td>A partir del control parc o punt de comandament de la zona</td></tr><tr><td><b>De qui depèn</b></td><td>SCT</td><td>SCT (SISCOM 1 i 2), CCA (SISCOM 3 i 4)</td><td>SCT (SISCOM 3), SCB (SISCOM 4)</td></tr></tbody></table></div><h3>Prioritats operatives</h3><ol class="prio"><li><b class="d p1">P1</b> Salvament de persones en situació de risc</li><li><b class="d p2">P2</b> Actuacions amb riscos associats que puguin posar en perill les persones</li><li><b class="d p3">P3</b> Infraestructures i serveis essencials</li><li><b class="d p4">P4</b> Altres actuacions sense risc directe o immediat</li></ol><p>El desescalat es fa en ordre invers: CCA, punts de comandament, control parc.</p><button class="btn" data-a="closem">Tanca</button></div></div>';
-    if (modal === 'intro') return '<div class="ov"><div class="dlg" role="dialog" aria-modal="true"><p class="eyebrow">17:00 · Comença l\'episodi</p><h2>Com funciona cada torn</h2><ol class="introl"><li><b>TEOC:</b> buideu la bústia 1 classificant cada avís. Després, a la bústia 2, envieu al terreny els paquets que toquin. Les P1, sempre de seguida.</li><li><b>Charlie:</b> mireu el comptador de l\'agrupació al mapa. Quan s\'acosti a 10 actuacions, activeu el control parc. Si una zona s\'apropa a 20 o hi ha persones en risc concentrades, desplegueu-hi un punt de comandament.</li><li>Quan tots dos hàgiu acabat, premeu <b>Avança 15 minuts</b>.</li></ol><p class="hint">El requadre de dalt a la dreta us diu en tot moment què toca fer. Es pot amagar amb el botó «Guiat».</p><button class="btn big" data-a="closem">Comencem</button></div></div>';
+    if (modal === 'guia') return '<div class="ov"><div class="dlg wide" role="dialog" aria-modal="true"><h2>Guia ràpida</h2><div class="tw"><table class="st"><thead><tr><th></th><th>Control parc</th><th>Punt de comandament</th><th>CCA</th></tr></thead><tbody><tr><td><b>Quan s\'activa</b></td><td>Més de 10 actuacions simultànies en una agrupació, o previsió de superar-les</td><td>Més de 20 actuacions en un àmbit concret, o abans si la gravetat ho justifica</td><td>Diversos punts de comandament en una zona, o SISCOM 3 o 4</td></tr><tr><td><b>On es desplega</b></td><td>En un parc</td><td>Al municipi o barri, preferentment a partir del control parc</td><td>A partir del control parc o punt de comandament de la zona</td></tr><tr><td><b>De qui depèn</b></td><td>SCT</td><td>SCT (SISCOM 1 i 2), CCA (SISCOM 3 i 4)</td><td>SCT (SISCOM 3), SCB (SISCOM 4)</td></tr></tbody></table></div><h3>Prioritats operatives</h3><p class="hint">L\'anella de color indica la prioritat.</p><ol class="prio"><li>' + ring(1) + '<b>3 · Immediata</b> Salvament de persones en situació de risc</li><li>' + ring(2) + '<b>2 · Prioritària</b> Actuacions amb riscos associats que puguin posar en perill les persones</li><li>' + ring(3) + '<b>1 · Demorable</b> Infraestructures i serveis essencials</li><li>' + ring(4) + '<b>0 · No té prioritat</b> Altres actuacions sense risc directe o immediat</li></ol><p>El desescalat es fa en ordre invers: CCA, punts de comandament, control parc.</p><button class="btn" data-a="closem">Tanca</button></div></div>';
+    if (modal === 'intro') return '<div class="ov"><div class="dlg" role="dialog" aria-modal="true"><p class="eyebrow">17:00 · Comença l\'episodi</p><h2>Com funciona cada torn</h2><ol class="introl"><li><b>TEOC:</b> buideu la bústia 1 classificant cada avís. Després, a la bústia 2, envieu al terreny els paquets que toquin. Les immediates, sempre de seguida.</li><li><b>Charlie:</b> mireu el comptador de l\'agrupació al mapa. Quan s\'acosti a 10 actuacions, activeu el control parc. Si una zona s\'apropa a 20 o hi ha persones en risc concentrades, desplegueu-hi un punt de comandament.</li><li>Quan tots dos hàgiu acabat, premeu <b>Avança 15 minuts</b>.</li></ol><p class="hint">El requadre de dalt a la dreta us diu en tot moment què toca fer. Es pot amagar amb el botó «Guiat».</p><button class="btn big" data-a="closem">Comencem</button></div></div>';
     if (modal === 'reset') return '<div class="ov"><div class="dlg" role="dialog" aria-modal="true"><h2>Voleu abandonar aquesta partida?</h2><p>Es perdrà l\'episodi en curs.</p><div class="endbtn"><button class="btn" data-a="new">Sí, nova partida</button><button class="btn ghost" data-a="closem">Continua jugant</button></div></div></div>';
     return '';
   }
   function head() {
     const ph = [['Preparació', S.round >= 1], ['Control parc', E.anyCP(S)], ['Punt de comandament', E.anyPC(S)], ['CCA', !!S.st.cca], ['Recuperació', S.evDone.includes('cct_recup') || S.phase === 'end']];
-    return '<div class="brand"><b>SIMULTANEÏTAT</b><span>Episodi ' + E.SC.short + ' · ' + E.SC.region + '</span></div>' + (NET.mode === 'local' ? '<ol class="steps">' + ph.map((p, i) => '<li class="' + (p[1] ? 'on' : '') + '"><i>' + (i + 1) + '</i>' + p[0] + '</li>').join('') + '</ol>' : '<span class="flex1"></span>') + '<div class="clock">' + (S.phase === 'prep' ? '<b>16:30</b><span>Preparació</span>' : S.phase === 'end' ? '<b>21:00</b><span>Episodi tancat</span>' : '<b>' + E.clock(S.round) + '</b><span>Torn ' + S.round + ' de ' + E.ROUNDS + '</span>') + '</div>' + netChip() + '<div class="hbtn">' + '<button class="btn ghost' + (guided() ? ' on' : '') + '" data-a="guided" aria-pressed="' + guided() + '">Guiat: ' + (guided() ? 'sí' : 'no') + '</button><button class="btn ghost" data-a="guia">Guia ràpida</button>' + (S.phase === 'play' ? '<button class="btn ghost" data-a="reset">Reinicia</button>' : '') + '</div>';
+    return '<div class="brand"><img src="' + LOGO + '" alt="Bombers de la Generalitat de Catalunya"><div><b>Joc de simultaneïtat</b><span>Episodi ' + E.SC.short + ' · ' + E.SC.region + '</span></div></div>' + (NET.mode === 'local' ? '<ol class="steps">' + ph.map((p, i) => '<li class="' + (p[1] ? 'on' : '') + '"><i>' + (i + 1) + '</i>' + p[0] + '</li>').join('') + '</ol>' : '<span class="flex1"></span>') + '<div class="clock">' + (S.phase === 'prep' ? '<b>16:30</b><span>Preparació</span>' : S.phase === 'end' ? '<b>21:00</b><span>Episodi tancat</span>' : '<b>' + E.clock(S.round) + '</b><span>Torn ' + S.round + ' de ' + E.ROUNDS + '</span>') + '</div>' + netChip() + '<div class="hbtn">' + '<button class="btn ghost' + (guided() ? ' on' : '') + '" data-a="guided" aria-pressed="' + guided() + '">Guiat: ' + (guided() ? 'sí' : 'no') + '</button><button class="btn ghost" data-a="guia">Guia ràpida</button>' + (S.phase === 'play' ? '<button class="btn ghost" data-a="reset">Reinicia</button>' : '') + '</div>';
   }
   function render() {
     if (lastPhase === 'prep' && S.phase === 'play' && guided()) modal = 'intro';
