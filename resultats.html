@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="ca">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Resultats del joc de simultaneïtat</title>
+<style>
+  :root{--bg:#efedf1;--surface:#fff;--ink:#1c1822;--muted:#655e6f;--line:#d9d3df;--accent:#5a2d82;--accent-ink:#fff;--tint:#ede5f5;--bad:#c1272d}
+  @media (prefers-color-scheme:dark){:root{--bg:#141118;--surface:#1f1b25;--ink:#ece8f1;--muted:#a69eb1;--line:#383141;--accent:#b993e6;--accent-ink:#17131c;--tint:#2c2238;--bad:#ef6a6e;color-scheme:dark}}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 "Segoe UI",system-ui,sans-serif;padding:24px 16px}
+  main{max-width:1100px;margin:0 auto;display:grid;gap:16px}
+  h1{font-size:26px;margin:0}
+  .card{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:16px}
+  ol{margin:6px 0 0;padding-left:20px}
+  .row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+  button,.file{background:var(--accent);color:var(--accent-ink);border:0;border-radius:4px;padding:8px 14px;font:600 14px inherit;cursor:pointer}
+  button:disabled{opacity:.5;cursor:default}
+  input[type=file]{font:inherit}
+  .err{color:var(--bad);font-weight:600}
+  .tw{overflow-x:auto}
+  table{border-collapse:collapse;width:100%;font-size:13.5px}
+  th,td{padding:5px 8px;border-bottom:1px solid var(--line);text-align:left;white-space:nowrap}
+  th{position:sticky;top:0;background:var(--tint)}
+  td.n{text-align:right;font-variant-numeric:tabular-nums}
+  :focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+</style>
+</head>
+<body>
+<main>
+  <h1>Resultats del joc de simultaneïtat</h1>
+  <div class="card">
+    <b>Com obtenir els resultats</b>
+    <ol>
+      <li>A la consola de Firebase, obriu el projecte <i>joc-simultaneitat-SCT</i> → Realtime Database → pestanya <i>Dades</i>.</li>
+      <li>Al menú de tres punts del quadre de dades, trieu <i>Exportar JSON</i>.</li>
+      <li>Carregueu aquí el fitxer descarregat. No s'envia enlloc: tot es processa en aquest navegador.</li>
+    </ol>
+  </div>
+  <div class="card row">
+    <label for="f"><b>Fitxer JSON exportat</b></label>
+    <input id="f" type="file" accept=".json,application/json">
+    <button id="csv" disabled>Descarrega per a Excel (.csv)</button>
+    <span id="st"></span>
+  </div>
+  <div class="card tw" id="out"><p>Encara no hi ha cap fitxer carregat.</p></div>
+</main>
+<script>
+(function () {
+  const COLS = [['data', 'Data'], ['nip', 'NIP'], ['regio', 'Regió'], ['escenari', 'Escenari'], ['codi', 'Codi'], ['mode', 'Mode'], ['guiada', 'Guiada'], ['rol', 'Rol'], ['total', 'Total'], ['persones', 'Persones en risc'], ['estructures', 'Estructures i desescalat'], ['prioritats', 'Prioritats i filtratge'], ['sala', 'Operativitat sala i terreny'], ['seguretat', 'Preparació, seguretat i logística']];
+  const NUM = new Set(['codi', 'total', 'persones', 'estructures', 'prioritats', 'sala', 'seguretat']);
+  const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const st = document.getElementById('st'), out = document.getElementById('out'), btn = document.getElementById('csv');
+  let rows = [];
+  document.getElementById('f').addEventListener('change', e => {
+    const file = e.target.files[0]; if (!file) return;
+    const rd = new FileReader();
+    rd.onload = () => {
+      try {
+        let j = JSON.parse(rd.result);
+        if (j && j.resultats) j = j.resultats;
+        rows = Object.values(j || {}).filter(r => r && r.nip).sort((a, b) => (b.t || 0) - (a.t || 0));
+        st.className = ''; st.textContent = rows.length + ' pràctiques registrades.';
+        btn.disabled = !rows.length;
+        out.innerHTML = rows.length ? '<table><thead><tr>' + COLS.map(c => '<th>' + c[1] + '</th>').join('') + '</tr></thead><tbody>' + rows.map(r => '<tr>' + COLS.map(c => '<td' + (NUM.has(c[0]) ? ' class="n"' : '') + '>' + esc(r[c[0]]) + '</td>').join('') + '</tr>').join('') + '</tbody></table>' : '<p>El fitxer no conté cap pràctica registrada.</p>';
+      } catch (err) { st.className = 'err'; st.textContent = 'Aquest fitxer no és un JSON vàlid exportat de Firebase.'; }
+    };
+    rd.readAsText(file);
+  });
+  btn.addEventListener('click', () => {
+    const q = v => { const s = String(v == null ? '' : v); return /[;"\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; };
+    const csv = '﻿' + [COLS.map(c => c[1]).join(';')].concat(rows.map(r => COLS.map(c => q(r[c[0]])).join(';'))).join('\r\n');
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
+    a.download = 'resultats-simultaneitat-' + new Date().toISOString().slice(0, 10) + '.csv';
+    document.body.appendChild(a); a.click(); a.remove();
+  });
+})();
+</script>
+</body>
+</html>

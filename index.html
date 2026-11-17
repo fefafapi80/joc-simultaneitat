@@ -209,6 +209,8 @@ tr.allrow td{background:var(--bg);border-bottom:0}tr.agrrow.top td{border-top:2p
 .wait{font-weight:600;color:var(--muted);border:1px dashed var(--line);border-radius:6px;padding:10px;text-align:center}
 .roomlink{display:flex;flex-wrap:wrap;gap:6px 10px;align-items:center;background:var(--tint);border-radius:6px;padding:8px 10px;margin:4px 0 12px;font-size:13px}.roomlink code{font-size:13px;word-break:break-all;flex:1;min-width:200px}
 .pairrow{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:10px 0}.pairrow label{font-weight:600}.pairrow input{font:600 18px var(--display);letter-spacing:.15em;text-transform:uppercase;width:140px;padding:6px 8px;border:1px solid var(--line);border-radius:4px;background:var(--surface);color:var(--ink)}
+.reg{border-top:4px solid var(--accent)}.reg.ok{border-top-color:var(--ok)}.reg.ok h3{color:var(--ok)}
+.regrow{display:flex;flex-wrap:wrap;gap:8px 10px;align-items:center}.regrow label{font-weight:600}.regrow input{font:600 18px var(--display);letter-spacing:.08em;width:150px;padding:6px 8px;border:1px solid var(--line);border-radius:4px;background:var(--surface);color:var(--ink)}
 .side{padding:16px;display:grid;gap:12px}
 @media (max-width:1100px){.coach{grid-template-columns:1fr}}
 @media (max-width:1500px){.steps li{font-size:12.5px;padding:3px 8px 3px 3px;gap:4px}.steps i{width:18px;height:18px;font-size:11px}#head{gap:12px}}
@@ -1166,9 +1168,33 @@ tr.allrow td{background:var(--bg);border-bottom:0}tr.agrrow.top td{border-top:2p
       '<div class="right card">' + (guided() ? coach() : '') + '<div class="tabs" role="tablist">' + tabs.map(t => '<button role="tab" aria-selected="' + (tab === t[0]) + '" class="tab' + (tab === t[0] ? ' on' : '') + '" data-a="tab" data-v="' + t[0] + '">' + t[1] + (t[2] ? '<i>' + t[2] + '</i>' : '') + '</button>').join('') + '</div><div class="panel" id="panel">' + body + '</div>' +
       '<div class="foot"><span>' + (E.canClose(S) ? 'Totes les actuacions estan resoltes.' : 'Quan TEOC i Charlie hagin acabat, avanceu el rellotge.') + '</span>' + (E.canClose(S) ? '<button class="btn ghost" data-a="close">Tanca l\'episodi</button>' : '') + '<button class="btn big" data-a="adv">Avança 15 minuts</button></div></div></div>';
   }
+  /* ---------- registre de la pràctica (NIP i regió) a Firebase ---------- */
+  const REGS = ['REC', 'REG', 'REL', 'REMN', 'REMS', 'RET', 'RETE', 'Central'];
+  const REG = { st: '', msg: '', nip: '', reg: '' };
+  function regBox() {
+    if (!canFB) return '<div class="card reg"><h3>Registra la pràctica</h3><p class="hint">El registre només funciona des de la versió del joc a GitHub Pages.</p></div>';
+    if (REG.st === 'ok') return '<div class="card reg ok"><h3>Pràctica registrada</h3><p>' + esc(REG.msg) + '</p></div>';
+    const reg = REG.reg || E.SC.region;
+    return '<div class="card reg"><h3>Registra la pràctica</h3><p class="hint top">Cada jugador registra la seva pràctica amb el seu NIP' + (NET.mode !== 'local' ? ', des del seu ordinador' : '') + '.</p><div class="regrow"><label for="nip">NIP</label><input id="nip" inputmode="numeric" maxlength="16" autocomplete="off" value="' + esc(REG.nip) + '"><label for="regio">Regió</label><select id="regio">' + REGS.map(r => '<option' + (r === reg ? ' selected' : '') + '>' + r + '</option>').join('') + '</select><button class="btn" data-a="register"' + (REG.st === 'busy' ? ' disabled' : '') + '>' + (REG.st === 'busy' ? 'Registrant…' : 'Registra la pràctica') + '</button></div>' + (REG.msg ? '<p class="fbk bad">' + esc(REG.msg) + '</p>' : '') + '</div>';
+  }
+  function register() {
+    const nip = ($('#nip').value || '').trim().toUpperCase().replace(/\s+/g, ''), reg = $('#regio').value;
+    REG.nip = nip; REG.reg = reg;
+    if (!/^[A-Z0-9-]{3,16}$/.test(nip)) { REG.msg = 'Escriviu un NIP vàlid (de 3 a 16 lletres o xifres).'; render(); return; }
+    const sc = S.score, d = new Date();
+    const rec = { nip, regio: reg, escenari: E.SC.region + ' · ' + E.SC.title, codi: S.seed, data: d.toLocaleString('ca-ES'), mode: NET.mode === 'local' ? 'Individual' : 'En parella', guiada: guided() ? 'Sí' : 'No', rol: NET.role ? RSHORT[NET.role] : 'Tots dos', total: sc.total, persones: sc.persones, estructures: sc.estructures, prioritats: sc.prioritats, sala: sc.sala, seguretat: sc.seguretat, t: { '.sv': 'timestamp' } };
+    REG.st = 'busy'; REG.msg = ''; render();
+    fetch(FB.replace('/sales/', '/resultats.json'), { method: 'POST', body: JSON.stringify(rec) }).then(r => {
+      if (r.ok) { REG.st = 'ok'; REG.msg = 'NIP ' + nip + ' · ' + reg + ' · ' + sc.total + ' punts. Gràcies.'; }
+      else { REG.st = ''; REG.msg = 'No s\'ha pogut registrar (error ' + r.status + '). Torneu-ho a provar.'; }
+      render();
+    }, () => { REG.st = ''; REG.msg = 'No s\'ha pogut connectar. Comproveu la connexió i torneu-ho a provar.'; render(); });
+  }
+
   function vEnd() {
     const sc = S.score, cats = [['persones', 'Persones en risc', 30], ['estructures', 'Estructures i desescalat', 25], ['prioritats', 'Prioritats i filtratge', 15], ['sala', 'Operativitat de la sala i del terreny', 15], ['seguretat', 'Preparació, seguretat i logística', 15]];
     return '<div class="end"><div class="total"><p class="eyebrow">Informe de l\'episodi · ' + E.SC.region + ' ' + E.SC.short + ' · codi ' + S.seed + (guided() ? ' · partida guiada' : '') + '</p><div class="big">' + sc.total + '<small>de 100</small></div><div class="bars">' + cats.map(c => '<div class="bar"><span>' + c[1] + ' <em>pes ' + c[2] + ' %</em></span><div><i style="width:' + sc[c[0]] + '%" class="' + (sc[c[0]] >= 75 ? 'ok' : sc[c[0]] >= 45 ? 'warn' : 'bad') + '"></i></div><b>' + sc[c[0]] + '</b></div>').join('') + '</div><div class="endbtn"><button class="btn" data-a="copy">Copia el resum</button><button class="btn ghost" data-a="new">Nova partida</button></div></div>' +
+      regBox() +
       '<div class="card"><h3>Moments clau</h3><ul class="keys">' + (S.keys.length ? S.keys.map(k => '<li class="' + (k.ok ? 'ok' : 'bad') + '"><time>' + E.clock(Math.min(k.r, E.ROUNDS)) + '</time><span>' + esc(k.msg) + '</span></li>').join('') : '<li>Cap decisió registrada.</li>') + '</ul></div>' +
       '<div class="card"><h3>Avisos mal classificats (' + S.m.errs.length + ')</h3>' + (S.m.errs.length ? '<ul class="errs">' + S.m.errs.slice(0, 15).map(e => '<li><b>#' + e.id + '</b> ' + esc(e.text) + '<small>' + e.did + ' · era ' + e.was + '</small></li>').join('') + '</ul>' + (S.m.errs.length > 15 ? '<p class="hint">Es mostren els 15 primers.</p>' : '') : '<p class="empty">Cap error de classificació.</p>') + '</div></div>';
   }
@@ -1237,7 +1263,7 @@ tr.allrow td{background:var(--bg);border-bottom:0}tr.agrrow.top td{border-top:2p
     else if (a === 'guia') modal = 'guia';
     else if (a === 'reset') modal = 'reset';
     else if (a === 'closem') modal = null;
-    else if (a === 'new') { const g = S.guided; S = E.newGame(S.seed, S.sc); S.guided = g; modal = null; tab = NET.role || 'teoc'; }
+    else if (a === 'new') { REG.st = ''; REG.msg = ''; const g = S.guided; S = E.newGame(S.seed, S.sc); S.guided = g; modal = null; tab = NET.role || 'teoc'; }
     else if (a === 'copy') {
       const sc = S.score, t = 'Simultaneïtat · ' + E.SC.region + ' · ' + E.SC.title + ' (codi ' + S.seed + ')\nPuntuació: ' + sc.total + '/100\nPersones en risc: ' + sc.persones + '\nEstructures i desescalat: ' + sc.estructures + '\nPrioritats i filtratge: ' + sc.prioritats + '\nOperativitat de la sala i del terreny: ' + sc.sala + '\nPreparació, seguretat i logística: ' + sc.seguretat;
       try { navigator.clipboard.writeText(t).then(() => { el.textContent = 'Copiat'; }, () => { el.textContent = 'No s\'ha pogut copiar'; }); } catch (e) { el.textContent = 'No s\'ha pogut copiar'; }
@@ -1248,7 +1274,7 @@ tr.allrow td{background:var(--bg);border-bottom:0}tr.agrrow.top td{border-top:2p
   }
 
   /* ---------- partida compartida (Teams Live Share, o dues finestres amb ?sim=1) ---------- */
-  const UI_ONLY = new Set(['tab', 'rest', 'dest', 'guia', 'reset', 'closem', 'evok', 'copy', 'role', 'takehost', 'stage', 'pair', 'mkroom', 'joinroom', 'copylink']);
+  const UI_ONLY = new Set(['register', 'tab', 'rest', 'dest', 'guia', 'reset', 'closem', 'evok', 'copy', 'role', 'takehost', 'stage', 'pair', 'mkroom', 'joinroom', 'copylink']);
   let lastPhase = null, seenRes = -1;
   const NET = { mode: 'local', host: false, role: null, me: Math.random().toString(36).slice(2, 10), T: null, n: 0, pending: [], done: new Set(), acks: {}, seq: 0, hostId: null, status: '', side: false, ready: false, room: null };
   const FB = 'https://joc-simultaneitat-sct-default-rtdb.europe-west1.firebasedatabase.app/sales/';
@@ -1297,6 +1323,7 @@ tr.allrow td{background:var(--bg);border-bottom:0}tr.agrrow.top td{border-top:2p
     if (a === 'role') { NET.role = d.v; tab = d.v; if (!NET.hostId) becomeHost(); render(); return; }
     if (a === 'takehost') { becomeHost(); render(); return; }
     if (a === 'pair') { modal = 'pair'; render(); return; }
+    if (a === 'register') { register(); return; }
     if (a === 'mkroom') { const A = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; let c = ''; for (let i = 0; i < 6; i++) c += A[Math.floor(Math.random() * A.length)]; modal = null; fbConnect(c); return; }
     if (a === 'joinroom') { const c = String(val || '').toUpperCase().replace(/[^A-Z0-9]/g, ''); if (c.length < 6) { return; } modal = null; fbConnect(c); return; }
     if (a === 'copylink') { try { navigator.clipboard.writeText(roomLink()).then(() => { el.textContent = 'Copiat'; }, () => { el.textContent = 'Copieu-lo a mà'; }); } catch (e) { el.textContent = 'Copieu-lo a mà'; } return; }
