@@ -207,6 +207,8 @@ tr.allrow td{background:var(--bg);border-bottom:0}tr.agrrow.top td{border-top:2p
 .linkb{all:unset;cursor:pointer;color:var(--accent);text-decoration:underline;font-size:12px}
 .rolepick{display:flex;gap:10px;flex-wrap:wrap;margin:14px 0 4px}.rolepick .btn{flex:1}
 .wait{font-weight:600;color:var(--muted);border:1px dashed var(--line);border-radius:6px;padding:10px;text-align:center}
+.roomlink{display:flex;flex-wrap:wrap;gap:6px 10px;align-items:center;background:var(--tint);border-radius:6px;padding:8px 10px;margin:4px 0 12px;font-size:13px}.roomlink code{font-size:13px;word-break:break-all;flex:1;min-width:200px}
+.pairrow{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:10px 0}.pairrow label{font-weight:600}.pairrow input{font:600 18px var(--display);letter-spacing:.15em;text-transform:uppercase;width:140px;padding:6px 8px;border:1px solid var(--line);border-radius:4px;background:var(--surface);color:var(--ink)}
 .side{padding:16px;display:grid;gap:12px}
 @media (max-width:1100px){.coach{grid-template-columns:1fr}}
 @media (max-width:1500px){.steps li{font-size:12.5px;padding:3px 8px 3px 3px;gap:4px}.steps i{width:18px;height:18px;font-size:11px}#head{gap:12px}}
@@ -1181,6 +1183,7 @@ tr.allrow td{background:var(--bg);border-bottom:0}tr.agrrow.top td{border-top:2p
       return '<div class="ov"><div class="dlg" role="dialog" aria-modal="true"><p class="eyebrow ' + (r.good ? 'ok' : 'bad') + '">' + (r.good ? 'Alineat amb la guia' : 'No és el que indica la guia') + '</p><h2>' + r.title + '</h2><blockquote>' + esc(r.guia) + '<cite>GUI.CORA.001 · Simultaneïtat d\'actuacions</cite></blockquote><button class="btn big" data-a="evok">Continua</button></div></div>';
     }
     if (NET.mode !== 'local' && !NET.role) return lobby();
+    if (modal === 'pair') return '<div class="ov"><div class="dlg" role="dialog" aria-modal="true"><p class="eyebrow">Jugar en parella</p><h2>TEOC i Charlie, cadascú al seu ordinador</h2><p>Un de vosaltres crea una sala i passa l\'enllaç a l\'altre. Si ja teniu un codi, escriviu-lo.</p><div class="pairrow"><button class="btn big" data-a="mkroom">Crea una sala</button></div><div class="pairrow"><label for="roomcode">Codi de sala</label><input id="roomcode" maxlength="7" autocomplete="off" placeholder="ABC123"><button class="btn" data-a="joinroom">Entra</button></div><p class="hint">No cal cap compte. La partida passa per un servei de Google (Firebase) i no s\'hi guarda cap dada personal.</p><button class="btn ghost" data-a="closem">Ara no</button></div></div>';
     if (modal === 'guia') return '<div class="ov"><div class="dlg wide" role="dialog" aria-modal="true"><h2>Guia ràpida</h2><div class="tw"><table class="st"><thead><tr><th></th><th>Control parc</th><th>Punt de comandament</th><th>CCA</th></tr></thead><tbody><tr><td><b>Quan s\'activa</b></td><td>Més de 10 actuacions simultànies en una agrupació, o previsió de superar-les</td><td>Més de 20 actuacions en un àmbit concret, o abans si la gravetat ho justifica</td><td>Diversos punts de comandament en una zona, o SISCOM 3 o 4</td></tr><tr><td><b>On es desplega</b></td><td>En un parc</td><td>Al municipi o barri, preferentment a partir del control parc</td><td>A partir del control parc o punt de comandament de la zona</td></tr><tr><td><b>De qui depèn</b></td><td>SCT</td><td>SCT (SISCOM 1 i 2), CCA (SISCOM 3 i 4)</td><td>SCT (SISCOM 3), SCB (SISCOM 4)</td></tr></tbody></table></div><h3>Prioritats operatives</h3><ol class="prio"><li><b class="d p1">P1</b> Salvament de persones en situació de risc</li><li><b class="d p2">P2</b> Actuacions amb riscos associats que puguin posar en perill les persones</li><li><b class="d p3">P3</b> Infraestructures i serveis essencials</li><li><b class="d p4">P4</b> Altres actuacions sense risc directe o immediat</li></ol><p>El desescalat es fa en ordre invers: CCA, punts de comandament, control parc.</p><button class="btn" data-a="closem">Tanca</button></div></div>';
     if (modal === 'intro') return '<div class="ov"><div class="dlg" role="dialog" aria-modal="true"><p class="eyebrow">17:00 · Comença l\'episodi</p><h2>Com funciona cada torn</h2><ol class="introl"><li><b>TEOC:</b> buideu la bústia 1 classificant cada avís. Després, a la bústia 2, envieu al terreny els paquets que toquin. Les P1, sempre de seguida.</li><li><b>Charlie:</b> mireu el comptador de l\'agrupació al mapa. Quan s\'acosti a 10 actuacions, activeu el control parc. Si una zona s\'apropa a 20 o hi ha persones en risc concentrades, desplegueu-hi un punt de comandament.</li><li>Quan tots dos hàgiu acabat, premeu <b>Avança 15 minuts</b>.</li></ol><p class="hint">El requadre de dalt a la dreta us diu en tot moment què toca fer. Es pot amagar amb el botó «Guiat».</p><button class="btn big" data-a="closem">Comencem</button></div></div>';
     if (modal === 'reset') return '<div class="ov"><div class="dlg" role="dialog" aria-modal="true"><h2>Voleu abandonar aquesta partida?</h2><p>Es perdrà l\'episodi en curs.</p><div class="endbtn"><button class="btn" data-a="new">Sí, nova partida</button><button class="btn ghost" data-a="closem">Continua jugant</button></div></div></div>';
@@ -1188,7 +1191,7 @@ tr.allrow td{background:var(--bg);border-bottom:0}tr.agrrow.top td{border-top:2p
   }
   function head() {
     const ph = [['Preparació', S.round >= 1], ['Control parc', E.anyCP(S)], ['Punt de comandament', E.anyPC(S)], ['CCA', !!S.st.cca], ['Recuperació', S.evDone.includes('cct_recup') || S.phase === 'end']];
-    return '<div class="brand"><b>SIMULTANEÏTAT</b><span>Episodi ' + E.SC.short + ' · ' + E.SC.region + '</span></div>' + (NET.mode === 'local' ? '<ol class="steps">' + ph.map((p, i) => '<li class="' + (p[1] ? 'on' : '') + '"><i>' + (i + 1) + '</i>' + p[0] + '</li>').join('') + '</ol>' : '<span class="flex1"></span>') + '<div class="clock">' + (S.phase === 'prep' ? '<b>16:30</b><span>Preparació</span>' : S.phase === 'end' ? '<b>21:00</b><span>Episodi tancat</span>' : '<b>' + E.clock(S.round) + '</b><span>Torn ' + S.round + ' de ' + E.ROUNDS + '</span>') + '</div>' + netChip() + '<div class="hbtn"><button class="btn ghost' + (guided() ? ' on' : '') + '" data-a="guided" aria-pressed="' + guided() + '">Guiat: ' + (guided() ? 'sí' : 'no') + '</button><button class="btn ghost" data-a="guia">Guia ràpida</button>' + (S.phase === 'play' ? '<button class="btn ghost" data-a="reset">Reinicia</button>' : '') + '</div>';
+    return '<div class="brand"><b>SIMULTANEÏTAT</b><span>Episodi ' + E.SC.short + ' · ' + E.SC.region + '</span></div>' + (NET.mode === 'local' ? '<ol class="steps">' + ph.map((p, i) => '<li class="' + (p[1] ? 'on' : '') + '"><i>' + (i + 1) + '</i>' + p[0] + '</li>').join('') + '</ol>' : '<span class="flex1"></span>') + '<div class="clock">' + (S.phase === 'prep' ? '<b>16:30</b><span>Preparació</span>' : S.phase === 'end' ? '<b>21:00</b><span>Episodi tancat</span>' : '<b>' + E.clock(S.round) + '</b><span>Torn ' + S.round + ' de ' + E.ROUNDS + '</span>') + '</div>' + netChip() + '<div class="hbtn">' + (NET.mode === 'local' && canFB ? '<button class="btn" data-a="pair">Jugar en parella</button>' : '') + '<button class="btn ghost' + (guided() ? ' on' : '') + '" data-a="guided" aria-pressed="' + guided() + '">Guiat: ' + (guided() ? 'sí' : 'no') + '</button><button class="btn ghost" data-a="guia">Guia ràpida</button>' + (S.phase === 'play' ? '<button class="btn ghost" data-a="reset">Reinicia</button>' : '') + '</div>';
   }
   function render() {
     if (lastPhase === 'prep' && S.phase === 'play' && guided()) modal = 'intro';
@@ -1245,16 +1248,23 @@ tr.allrow td{background:var(--bg);border-bottom:0}tr.agrrow.top td{border-top:2p
   }
 
   /* ---------- partida compartida (Teams Live Share, o dues finestres amb ?sim=1) ---------- */
-  const UI_ONLY = new Set(['tab', 'rest', 'dest', 'guia', 'reset', 'closem', 'evok', 'copy', 'role', 'takehost', 'stage']);
+  const UI_ONLY = new Set(['tab', 'rest', 'dest', 'guia', 'reset', 'closem', 'evok', 'copy', 'role', 'takehost', 'stage', 'pair', 'mkroom', 'joinroom', 'copylink']);
   let lastPhase = null, seenRes = -1;
-  const NET = { mode: 'local', host: false, role: null, me: Math.random().toString(36).slice(2, 10), T: null, n: 0, pending: [], done: new Set(), acks: {}, seq: 0, hostId: null, status: '', side: false };
+  const NET = { mode: 'local', host: false, role: null, me: Math.random().toString(36).slice(2, 10), T: null, n: 0, pending: [], done: new Set(), acks: {}, seq: 0, hostId: null, status: '', side: false, ready: false, room: null };
+  const FB = 'https://joc-simultaneitat-sct-default-rtdb.europe-west1.firebasedatabase.app/sales/';
+  const QS = new URLSearchParams(location.search);
+  const canFB = (location.protocol === 'https:' && location.hostname.endsWith('github.io')) || QS.has('fb');
+  const roomLink = () => location.origin + location.pathname + '?sala=' + NET.room;
   function netChip() {
     if (NET.mode === 'local') return '';
-    return '<div class="netchip' + (NET.status ? ' bad' : '') + '" title="' + esc(NET.status || 'Partida compartida') + '"><b>Partida compartida</b><span>' + (NET.role ? 'Sou ' + RSHORT[NET.role] : 'Sense rol') + (NET.host ? ' · porteu el rellotge' : '') + (NET.pending.length ? ' · enviant…' : '') + '</span>' + (!NET.host && NET.role ? '<button class="linkb" data-a="takehost">Pren el control</button>' : '') + '</div>';
+    return '<div class="netchip' + (NET.status ? ' bad' : '') + '" title="' + esc(NET.status || 'Partida compartida') + '"><b>Partida compartida</b><span>' + (NET.room ? 'Sala ' + NET.room + ' · ' : '') + (NET.role ? 'Sou ' + RSHORT[NET.role] : 'Sense rol') + (NET.host ? ' · porteu el rellotge' : '') + (NET.pending.length ? ' · enviant…' : '') + '</span>' + (!NET.host && NET.role ? '<button class="linkb" data-a="takehost">Pren el control</button>' : '') + '</div>';
   }
   function lobby() {
     const joined = !!NET.hostId;
-    return '<div class="ov"><div class="dlg" role="dialog" aria-modal="true"><p class="eyebrow">Partida compartida' + (NET.mode === 'sim' ? ' · prova en dues finestres' : ' a la reunió') + '</p><h2>Quin rol porteu?</h2><p>' + (joined ? 'Ja hi ha una partida en marxa. Tria el teu rol per entrar-hi.' : 'Encara no hi ha cap partida. El primer que triï el rol la crea i porta el rellotge.') + ' Cadascú veurà la seva pestanya; les decisions de l\'altre rol us arribaran en directe.</p>' +
+    const where = NET.mode === 'sim' ? ' · prova en dues finestres' : NET.mode === 'fb' ? ' · sala ' + NET.room : ' a la reunió';
+    const link = NET.mode === 'fb' ? '<div class="roomlink"><span>Enllaç per a l\'altre jugador:</span><code>' + esc(roomLink()) + '</code><button class="btn ghost" data-a="copylink">Copia l\'enllaç</button></div>' : '';
+    if (!NET.ready) return '<div class="ov"><div class="dlg" role="dialog" aria-modal="true"><p class="eyebrow">Partida compartida' + where + '</p><h2>Connectant…</h2><p>' + esc(NET.status || 'Un moment.') + '</p></div></div>';
+    return '<div class="ov"><div class="dlg" role="dialog" aria-modal="true"><p class="eyebrow">Partida compartida' + where + '</p>' + link + '<h2>Quin rol porteu?</h2><p>' + (joined ? 'Ja hi ha una partida en marxa. Tria el teu rol per entrar-hi.' : 'Encara no hi ha cap partida. El primer que triï el rol la crea i porta el rellotge.') + ' Cadascú veurà la seva pestanya; les decisions de l\'altre rol us arribaran en directe.</p>' +
       '<div class="rolepick"><button class="btn big" data-a="role" data-v="teoc">Sóc TEOC</button><button class="btn big" data-a="role" data-v="cct">Sóc Charlie</button></div>' + (NET.status ? '<p class="fbk bad">' + esc(NET.status) + '</p>' : '') + '</div></div>';
   }
   function sidePanel() {
@@ -1276,7 +1286,7 @@ tr.allrow td{background:var(--bg);border-bottom:0}tr.agrrow.top td{border-top:2p
     }
   }
   function onNetEvent(m) {
-    if (!NET.host || !m || m.from === NET.me || NET.done.has(m.id)) return;
+    if (!NET.host || !m || m.from === NET.me || NET.done.has(m.id) || m.n <= (NET.acks[m.from] || 0)) return;
     NET.done.add(m.id); NET.acks[m.from] = Math.max(NET.acks[m.from] || 0, m.n);
     act(m.a, m.d || {}, null, m.val);
   }
@@ -1286,9 +1296,40 @@ tr.allrow td{background:var(--bg);border-bottom:0}tr.agrrow.top td{border-top:2p
   act = function (a, d, el, val) {
     if (a === 'role') { NET.role = d.v; tab = d.v; if (!NET.hostId) becomeHost(); render(); return; }
     if (a === 'takehost') { becomeHost(); render(); return; }
+    if (a === 'pair') { modal = 'pair'; render(); return; }
+    if (a === 'mkroom') { const A = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; let c = ''; for (let i = 0; i < 6; i++) c += A[Math.floor(Math.random() * A.length)]; modal = null; fbConnect(c); return; }
+    if (a === 'joinroom') { const c = String(val || '').toUpperCase().replace(/[^A-Z0-9]/g, ''); if (c.length < 6) { return; } modal = null; fbConnect(c); return; }
+    if (a === 'copylink') { try { navigator.clipboard.writeText(roomLink()).then(() => { el.textContent = 'Copiat'; }, () => { el.textContent = 'Copieu-lo a mà'; }); } catch (e) { el.textContent = 'Copieu-lo a mà'; } return; }
     if (a === 'stage') { try { TLS.meeting.shareAppContentToStage(err => { NET.status = err ? 'No s\'ha pogut obrir a l\'escenari: ' + (err.message || err.errorCode || err) : ''; render(); }, location.href.split('?')[0] + '?teams=1'); } catch (e) { NET.status = 'No s\'ha pogut obrir a l\'escenari.'; render(); } return; }
     return _act(a, d, el, val);
   };
+  function fbConnect(code) {
+    const base = FB + code;
+    NET.mode = 'fb'; NET.room = code; NET.ready = false; NET.status = 'Connectant amb la sala…';
+    try { history.replaceState(null, '', '?sala=' + code); } catch (e) {}
+    const fail = () => { NET.status = 'No s\'ha pogut enviar a la sala. Comproveu la connexió.'; render(); };
+    NET.T = {
+      setState: w => fetch(base + '.json', { method: 'PATCH', body: JSON.stringify({ estat: JSON.stringify(w), t: Date.now() }) }).then(r => { if (!r.ok) fail(); }, fail),
+      send: m => fetch(base + '/accions.json', { method: 'POST', body: JSON.stringify(JSON.stringify(m)) }).then(r => { if (!r.ok) fail(); }, fail)
+    };
+    const parse = s => { try { return JSON.parse(s); } catch (e) { return null; } };
+    const handle = msg => {
+      const p = msg.path, d = msg.data;
+      if (p === '/') {
+        if (d && d.estat) onNetState(parse(d.estat));
+        if (d && d.accions && NET.host) for (const k in d.accions) onNetEvent(parse(d.accions[k]));
+        if (!NET.ready) { NET.ready = true; NET.status = ''; render(); }
+      } else if (p === '/estat') { if (d) onNetState(parse(d)); }
+      else if (p === '/accions') { if (d && NET.host) for (const k in d) onNetEvent(parse(d[k])); }
+      else if (p.indexOf('/accions/') === 0) { if (d && NET.host) onNetEvent(parse(d)); }
+    };
+    const es = new EventSource(base + '.json');
+    es.addEventListener('put', e => handle(JSON.parse(e.data)));
+    es.addEventListener('patch', e => handle(JSON.parse(e.data)));
+    es.onopen = () => { if (NET.status && NET.ready) { NET.status = ''; render(); } };
+    es.onerror = () => { NET.status = NET.ready ? 'Connexió perduda. Reintentant…' : 'No es pot connectar amb la sala. Pot ser que la xarxa ho bloquegi.'; render(); };
+    render();
+  }
   function loadScript(src) { return new Promise((ok, ko) => { const s = document.createElement('script'); s.src = src; s.onload = ok; s.onerror = ko; document.head.appendChild(s); }); }
   async function netInit() {
     const q = new URLSearchParams(location.search);
@@ -1298,8 +1339,9 @@ tr.allrow td{background:var(--bg);border-bottom:0}tr.agrrow.top td{border-top:2p
       ch.onmessage = e => { const m = e.data; if (m.k === 'state') { cur = m.w; sl.forEach(f => f(m.w)); } else if (m.k === 'evt') el.forEach(f => f(m.m)); else if (m.k === 'hello' && NET.host) ch.postMessage({ k: 'state', w: cur }); };
       NET.T = { setState: w => { cur = w; ch.postMessage({ k: 'state', w }); }, send: m => ch.postMessage({ k: 'evt', m }) };
       sl.push(onNetState); el.push(onNetEvent); NET.mode = 'sim'; ch.postMessage({ k: 'hello' });
-      setTimeout(render, 300); render(); return;
+      setTimeout(() => { NET.ready = true; render(); }, 400); render(); return;
     }
+    if (q.has('sala')) { const c = q.get('sala').toUpperCase().replace(/[^A-Z0-9]/g, ''); if (c.length >= 6) fbConnect(c); return; }
     if (!q.has('teams')) return;
     NET.mode = 'live'; NET.status = 'Connectant amb la reunió…'; render();
     try {
@@ -1314,7 +1356,7 @@ tr.allrow td{background:var(--bg);border-bottom:0}tr.agrrow.top td{border-top:2p
       accions.on('received', (m, local) => { if (!local) onNetEvent(m); });
       await estat.initialize(null); await accions.initialize();
       NET.T = { setState: w => estat.set(w), send: m => accions.send(m) };
-      NET.status = '';
+      NET.status = ''; NET.ready = true;
       if (estat.state && estat.state.S) onNetState(estat.state);
       render();
     } catch (e) {
@@ -1322,7 +1364,7 @@ tr.allrow td{background:var(--bg);border-bottom:0}tr.agrrow.top td{border-top:2p
     }
   }
 
-  const valFor = (a, d, el) => a === 'sendg' ? $('#sg-' + d.c).value : a === 'send' && d.k ? $('#s-' + d.k).value : el.type === 'checkbox' ? el.checked : (el.tagName === 'SELECT' || el.tagName === 'INPUT') ? el.value : null;
+  const valFor = (a, d, el) => a === 'joinroom' ? $('#roomcode').value : a === 'sendg' ? $('#sg-' + d.c).value : a === 'send' && d.k ? $('#s-' + d.k).value : el.type === 'checkbox' ? el.checked : (el.tagName === 'SELECT' || el.tagName === 'INPUT') ? el.value : null;
   document.addEventListener('click', ev => { const el = ev.target.closest('button[data-a]'); if (el) act(el.dataset.a, Object.assign({}, el.dataset), el, valFor(el.dataset.a, el.dataset, el)); });
   document.addEventListener('change', ev => { const el = ev.target.closest('select[data-a],input[data-a]'); if (el) act(el.dataset.a, Object.assign({}, el.dataset), el, valFor(el.dataset.a, el.dataset, el)); });
 
